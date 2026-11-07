@@ -22,9 +22,11 @@ removed on 2026-11-07 at the user's request (it is in git history) – do not re
 - Multi-commodity (`sber.<typ>.spolu_s`): the type is also served by containers of the listed types.
 - Excluded network parts are hidden and left out of statistics, comparison and exports, but routing
   still goes through them (distances elsewhere do not change).
-- Continuous colour scale is anchored to the bands (render.js and exports.js, kept equal by a test):
-  band green at 0, yellow #f0c828 at the first limit, band orange halfway, band red at the last limit,
-  dark red #7f0000 at 2× the last limit. There is no separate max setting.
+- Continuous colour scale is anchored to the bands (render.js and exports.js, kept equal by a test) and
+  must not misrepresent them: each band keeps its hue, only the shade changes. Stops: band green at 0,
+  light green at 0.85×first, yellow at first, band orange at first+25 % of the gap, deep orange at
+  last−15 % of the gap, band red at last, dark red at 2×last. No separate max setting.
+  (User feedback: an earlier version blending orange→red across the whole orange band looked "too red".)
 - Published states live in `web/presets/*.json`; CI builds `presets/index.json`. Deploy from `main`.
 
 ## Not started (ideas from the original brief)

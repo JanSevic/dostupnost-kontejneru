@@ -60,9 +60,11 @@ i do stavu pro web. Seznam vyloučených oblastí (s možností smazání) je po
 Zastupitelé si mohou přepnout barvy mezi **pásmy** a **spojitou škálou**. Výchozí volba se bere
 z režimu úprav v okamžiku uložení stavu (Výpočet → Barvy).
 
-Spojitá škála se řídí hranicemi pásem, aby se četla stejně: zelená u kontejneru, žlutá na 1. hranici
-(100 m), oranžová mezi hranicemi, **od 2. hranice (200 m) červená**, která dál tmavne až do dvojnásobku
-poslední hranice (400 m). Když v režimu úprav změníš hranice pásem, posune se s nimi i škála.
+Spojitá škála se řídí hranicemi pásem, aby se četla stejně: každé pásmo si drží svou barvu a mění se
+jen její odstín. Do 100 m je zelená (k hranici světlejší), mezi 100 a 200 m oranžová, která ke konci
+tmavne (je vidět, kde se blíží problém), a **od 200 m červená**, která dál tmavne až do 400 m.
+Barva se mění jen v krátkých přechodech u hranic. Když v režimu úprav změníš hranice pásem, posune se
+s nimi i škála.
 
 Stav smažeš smazáním jeho souboru ze složky `presets/`. Opravu uděláš tak, že stav otevřeš
 v režimu úprav (**Otevřít stav k úpravám…** – ze zveřejněného seznamu nebo ze souboru),

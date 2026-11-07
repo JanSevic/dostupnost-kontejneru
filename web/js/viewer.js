@@ -419,9 +419,9 @@ import { normaliseCollection, isDoorToDoor, describeCollection, layerLabel } fro
     if (s.mode === "continuous") {
       const stops = R.continuousStops(s), b = s.bands, n = R.formatNumber;
       ul.innerHTML = '<li><span class="line" style="background:linear-gradient(to right,' + stops.map((x) => x[1]).join(",") +
-        ')"></span>spojitá škála: zelená u kontejneru, žlutá kolem ' + n(b[0]) + " m, oranžová mezi " + n(b[0]) + " a " +
-        n(b[b.length - 1]) + " m, od " + n(b[b.length - 1]) + " m červená, která dál tmavne (nejtmavší od " +
-        n(2 * b[b.length - 1]) + " m)</li>" + '<li><span class="line" style="background:' + s.unreachable_color +
+        ')"></span>spojitá škála: do ' + n(b[0]) + " m zelená (směrem k hranici světlejší), mezi " + n(b[0]) + " a " +
+        n(b[b.length - 1]) + " m oranžová (čím tmavší, tím blíž k " + n(b[b.length - 1]) + " m), od " + n(b[b.length - 1]) +
+        " m červená, která dál tmavne (nejtmavší od " + n(2 * b[b.length - 1]) + " m)</li>" + '<li><span class="line" style="background:' + s.unreachable_color +
         '"></span>šedá – odsud se ke kontejneru po zmapovaných cestách nedá dojít</li>';
       return;
     }

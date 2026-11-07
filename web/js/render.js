@@ -2,10 +2,13 @@
 (function (global) {
   "use strict";
 
-  // Continuous scale anchored to the band limits so that it reads like the bands: green at the container,
-  // yellow at the first limit, the band orange halfway, the band red at the last limit, then darker red
-  // up to twice the last limit. Keep in sync with continuousStops() in exports.js.
+  // Continuous scale anchored to the band limits so that it reads like the bands: every band keeps its hue
+  // and only its shade changes (lighter green towards the first limit, deeper orange towards the last one);
+  // the hue changes only in short transitions at the limits, red starts exactly at the last limit and gets
+  // darker up to twice the last limit. Keep in sync with continuousStops() in exports.js.
+  const SCALE_LIGHT_GREEN = "#7cc35d";
   const SCALE_YELLOW = "#f0c828";
+  const SCALE_DEEP_ORANGE = "#e8650c";
   const SCALE_DARK_RED = "#7f0000";
 
   function rgb(h) {
@@ -20,8 +23,11 @@
   /** [[distance in m, "#rrggbb"], …] for settings s = {bands, band_colors}. */
   function continuousStops(s) {
     const first = s.bands[0], last = s.bands[s.bands.length - 1], colors = s.band_colors;
-    const stops = [[0, colors[0]], [first, SCALE_YELLOW]];
-    if (last > first) stops.push([(first + last) / 2, colors[Math.min(1, colors.length - 1)]]);
+    const stops = [[0, colors[0]], [0.85 * first, SCALE_LIGHT_GREEN], [first, SCALE_YELLOW]];
+    const gap = last - first;
+    if (gap > 0) {
+      stops.push([first + 0.25 * gap, colors[Math.min(1, colors.length - 1)]], [last - 0.15 * gap, SCALE_DEEP_ORANGE]);
+    }
     stops.push([last, colors[colors.length - 1]], [2 * last, SCALE_DARK_RED]);
     return stops;
   }

@@ -84,16 +84,21 @@ export async function html({ net, fc, types, results, summary, settings, title, 
 // ------------------------------------------------------------------ A4 landscape PNG (300 dpi)
 const WIDTH = 3508, HEIGHT = 2480, PT = 300 / 72; // px per typographic point
 // Continuous scale anchored to the band limits – the same as in render.js (keep in sync; a test compares them).
+const SCALE_LIGHT_GREEN = "#7cc35d";
 const SCALE_YELLOW = "#f0c828";
+const SCALE_DEEP_ORANGE = "#e8650c";
 const SCALE_DARK_RED = "#7f0000";
 const toRgb = (h) => [1, 3, 5].map((i) => parseInt(String(h).replace("#", "").padStart(6, "0").slice(i - 1, i + 1), 16));
 const toHex = (c) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
 
-/** [[distance in m, "#rrggbb"], …]: green at 0, yellow at the first limit, band orange halfway, band red at the last limit, dark red at 2× the last limit. */
+/** [[distance in m, "#rrggbb"], …]: each band keeps its hue (green, orange), short transitions at the limits, band red from the last limit, dark red at 2× the last limit. */
 export function continuousStops(s) {
   const first = s.bands[0], last = s.bands[s.bands.length - 1], colors = s.band_colors;
-  const stops = [[0, colors[0]], [first, SCALE_YELLOW]];
-  if (last > first) stops.push([(first + last) / 2, colors[Math.min(1, colors.length - 1)]]);
+  const stops = [[0, colors[0]], [0.85 * first, SCALE_LIGHT_GREEN], [first, SCALE_YELLOW]];
+  const gap = last - first;
+  if (gap > 0) {
+    stops.push([first + 0.25 * gap, colors[Math.min(1, colors.length - 1)]], [last - 0.15 * gap, SCALE_DEEP_ORANGE]);
+  }
   stops.push([last, colors[colors.length - 1]], [2 * last, SCALE_DARK_RED]);
   return stops;
 }

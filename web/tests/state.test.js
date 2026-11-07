@@ -109,13 +109,13 @@ test("validateState rejects invalid files", () => {
   assert.doesNotThrow(() => validateState({ ...copy(state()), version: 0 }));
 });
 
-test("computeState matches the parity data from the Python version", () => {
+test("computeState matches the reference data (frozen results of the former Python implementation)", () => {
   const o = validateState(copy(state()));
   const r = computeState(o);
   assert.deepEqual(Object.keys(r.results).sort(), ["papir", "plast"]);
   assert.deepEqual(r.summaryTypes, ["plast", "papir"]);
   assert.ok(Math.abs(r.net.lengthKm - ref.length_km) <= ref.length_km * 0.002);
-  // node distances against Python (OSM node id by position)
+  // node distances against the reference (OSM node id by position)
   const idByPosition = new Map();
   for (const [id, ll] of data.nodes) idByPosition.set(ll.join(","), id);
   let compared = 0;

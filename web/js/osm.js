@@ -9,7 +9,7 @@ const FOOT_YES = new Set(["yes", "designated", "permissive"]);
 const FOOT_NO = new Set(["no", "private"]);
 const ACCESS_NO = new Set(["no", "private"]);
 
-/** Can pedestrians walk along a way with these tags? (same rule as the Python version) */
+/** Can pedestrians walk along a way with these tags? Cycleways count unless foot=no. */
 export function isWalkable(t) {
   const hw = (t.highway || "").trim().toLowerCase();
   if (!hw || HIGHWAY_EXCLUDED.has(hw)) return false;

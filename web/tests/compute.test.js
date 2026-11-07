@@ -145,7 +145,7 @@ test("bbox with margin and area", () => {
   close(areaKm2(b), 1.31 * 1.71, 0.08);
 });
 
-test("matches the desktop (Python) version on the made-up village Test", () => {
+test("matches the reference data on the made-up village Test (frozen results of the former Python implementation)", () => {
   const xml = readFileSync(new URL("./data/village_test.osm", import.meta.url), "utf8");
   const ref = JSON.parse(readFileSync(new URL("./data/parity.json", import.meta.url), "utf8"));
   const data = fromXml(xml);

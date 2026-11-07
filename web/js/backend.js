@@ -8,6 +8,8 @@ import { computeType, summary, checkStraightLine } from "./compute.js";
 import * as db from "./storage.js";
 import * as exports from "./exports.js";
 import { createState, validateState } from "./state.js";
+import { normaliseCollection, isDoorToDoor, sourcesByType, summaryKeys } from "./collection.js";
+import { emptyExclusions, normaliseExclusions, exclusionMask, edgeKey, maskToList } from "./exclusions.js";
 
 const SUMMARY = CONFIG.summary_key;
 
@@ -20,7 +22,10 @@ const S = {
   slug: null,
   meta: null,
   net: null,
+  networkData: null, // {nodes, edges} the network was built from (for exclusion keys)
   netVersion: 0,
+  exclusions: emptyExclusions(),
+  excluded: new Uint8Array(0), // 1 = segment excluded from evaluation
   containers: { type: "FeatureCollection", features: [] },
   basemap: null,
   task: { running: false },
@@ -84,7 +89,10 @@ export function normaliseContainers(fc, types) {
   if (withoutId.length) warnings.push(`${withoutId.length} kontejner(ů) nemělo platné nebo jedinečné id – bylo přiděleno nové.`);
   if (skipped) warnings.push(`${skipped} prvek(ů) nebyl bod s vyplněným typem – vynecháno.`);
   for (const t of added) warnings.push(`Typ „${t.name}“ není v konfiguraci – přidán dočasně.`);
-  return { fc: { type: "FeatureCollection", features: out }, warnings, added };
+  const result = { type: "FeatureCollection", features: out };
+  const collection = normaliseCollection(fc.sber);
+  if (Object.keys(collection).length) result.sber = collection;
+  return { fc: result, warnings, added };
 }
 
 function requireArea() {
@@ -123,7 +131,9 @@ async function openArea(slug) {
       fc = r.fc;
     } catch (e) { /* damaged data – start from scratch */ }
   }
-  Object.assign(S, { slug, meta: o.meta, net, types, containers: fc, basemap: o.basemap });
+  const exclusions = normaliseExclusions(work.exclusions);
+  Object.assign(S, { slug, meta: o.meta, net, networkData: o.network, types, containers: fc, basemap: o.basemap, exclusions,
+    excluded: exclusionMask(o.network, net, exclusions) });
   S.netVersion++;
   await db.put("settings", { key: "last_area", value: slug });
 }
@@ -198,25 +208,31 @@ function startTask(description, fn) {
 
 function compute(keys, withSummary) {
   if (!S.net) throw new ApiError(409, "Není otevřená žádná oblast – vyber nebo připrav oblast.");
-  const byType = {};
-  for (const f of S.containers.features) (byType[f.properties.typ] ||= []).push(f);
+  const collection = normaliseCollection(S.containers.sber);
+  const sources = sourcesByType(S.containers, S.types, collection);
   const names = Object.fromEntries(S.types.map((t) => [t.key, t.name]));
   const warnings = [];
   if (keys === null) {
     keys = S.types.map((t) => t.key);
-    const empty = keys.filter((k) => !byType[k]).map((k) => names[k]);
+    const empty = keys.filter((k) => !sources[k] && !isDoorToDoor(collection, k)).map((k) => names[k]);
     if (empty.length) warnings.push("Bez kontejnerů (nepočítáno): " + empty.join(", ") + ".");
-    keys = keys.filter((k) => byType[k]);
+    const doorEmpty = keys.filter((k) => !sources[k] && isDoorToDoor(collection, k)).map((k) => names[k]);
+    if (doorEmpty.length) warnings.push("Svoz od domu bez záložních míst (nepočítáno): " + doorEmpty.join(", ") + ".");
+    keys = keys.filter((k) => sources[k]);
     if (!keys.length) throw new ApiError(400, "Zatím není zadaný žádný kontejner.");
   } else {
     for (const k of keys) {
       if (!names[k]) throw new ApiError(400, `Neznámý typ odpadu „${k}“.`);
-      if (!byType[k]) throw new ApiError(400, `Typ „${names[k]}“ nemá žádný kontejner – nejdřív nějaký přidej.`);
+      if (!sources[k]) {
+        throw new ApiError(400, isDoorToDoor(collection, k)
+          ? `Typ „${names[k]}“ má svoz od domu a zatím nemá žádné záložní místo – nejdřív nějaké přidej.`
+          : `Typ „${names[k]}“ nemá žádný kontejner – nejdřív nějaký přidej.`);
+      }
     }
   }
   const results = {}, checks = {}, snaps = {};
   for (const k of keys) {
-    const points = byType[k].map((f) => ({ id: f.properties.id, lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] }));
+    const points = sources[k];
     const r = computeType(S.net, names[k], points, CONFIG.connection_warning_m);
     results[k] = r.d;
     warnings.push(...r.warnings);
@@ -228,9 +244,10 @@ function compute(keys, withSummary) {
     if (!r.d.some(Number.isFinite)) warnings.push(`${names[k]}: žádný kontejner není připojen k síti.`);
   }
   let summaryD = null, summaryTypes = [];
-  if (withSummary && keys.length) {
-    summaryTypes = [...keys];
-    summaryD = summary(keys.map((k) => results[k]), S.net.segments.count);
+  const forSummary = summaryKeys(keys, collection);
+  if (withSummary && forSummary.length) {
+    summaryTypes = forSummary;
+    summaryD = summary(forSummary.map((k) => results[k]), S.net.segments.count);
   }
   return { results, summary: summaryD, summaryTypes, snaps, warnings, checks, version: S.netVersion };
 }
@@ -300,7 +317,27 @@ export async function call(method, url, body) {
     case "GET /api/network/segments":
       requireArea();
       return { version: S.netVersion, segments: S.net.segments.ll, lengths: Array.from(S.net.segments.length, (x) => Math.round(x * 100) / 100),
-        area: bboxPolygon(S.meta.bbox) };
+        area: bboxPolygon(S.meta.bbox), excluded: maskToList(S.excluded) };
+    case "GET /api/exclusions":
+      requireArea();
+      return exclusionsResponse();
+    case "PUT /api/exclusions":
+      requireArea();
+      await setExclusions(normaliseExclusions(body));
+      return exclusionsResponse();
+    case "POST /api/exclusions/toggle-segment": {
+      requireArea();
+      const k = Number(body.segment);
+      if (!(k >= 0 && k < S.net.segments.count)) throw new ApiError(400, "Neplatný úsek sítě.");
+      const [a, b] = S.networkData.edges[S.net.segments.edge[k]];
+      const key = edgeKey(S.networkData.nodes, a, b);
+      const edges = new Set(S.exclusions.edges);
+      if (edges.has(key)) edges.delete(key);
+      else if (S.excluded[k]) throw new ApiError(400, "Úsek leží ve vyloučené oblasti – pro jeho vrácení smaž tu oblast.");
+      else edges.add(key);
+      await setExclusions({ polygons: S.exclusions.polygons, edges: [...edges] });
+      return exclusionsResponse();
+    }
     case "GET /api/containers":
       requireArea();
       return S.containers;
@@ -346,6 +383,32 @@ export async function call(method, url, body) {
   throw new ApiError(404, "Neznámé volání " + route);
 }
 
+function exclusionsResponse() {
+  return { ...S.exclusions, excluded: maskToList(S.excluded) };
+}
+
+async function setExclusions(ex) {
+  S.exclusions = ex;
+  S.excluded = exclusionMask(S.networkData, S.net, ex);
+  const work = (await db.get("work", S.slug)) || { slug: S.slug, variants: {} };
+  work.exclusions = ex;
+  await db.put("work", work);
+}
+
+/** Exports show only the evaluated part of the network (excluded segments are left out). */
+function evaluatedView(r) {
+  if (!S.excluded.some(Boolean)) return { net: S.net, results: r.results, summary: r.summary };
+  const keep = [];
+  for (let k = 0; k < S.excluded.length; k++) if (!S.excluded[k]) keep.push(k);
+  const pick = (d) => Float64Array.from(keep, (k) => d[k]);
+  const seg = S.net.segments;
+  return {
+    net: { segments: { count: keep.length, ll: keep.map((k) => seg.ll[k]), length: pick(seg.length) } },
+    results: Object.fromEntries(Object.entries(r.results).map(([k, d]) => [k, pick(d)])),
+    summary: r.summary ? pick(r.summary) : null,
+  };
+}
+
 async function saveVariant(name) {
   const work = (await db.get("work", S.slug)) || { slug: S.slug, variants: {} };
   work.variants = work.variants || {};
@@ -377,7 +440,8 @@ export async function exportData(kind, body) {
   const r = compute(null, true);
   const title = String(body.title || "Pěší dostupnost kontejnerů");
   const attribution = (S.meta && S.meta.attribution) || OSM_ATTRIBUTION;
-  const common = { net: S.net, fc: S.containers, types: S.types, results: r.results, summary: r.summary, settings,
+  const view = evaluatedView(r);
+  const common = { net: view.net, fc: S.containers, types: S.types, results: view.results, summary: view.summary, settings,
     snaps: r.snaps, basemap: S.basemap, attribution, title, extent: body.extent, area: bboxPolygon(S.meta.bbox) };
   const warnings = [...r.warnings];
   if (kind === "geojson") {
@@ -387,12 +451,12 @@ export async function exportData(kind, body) {
     return { blob: await exports.html({ ...common, layer: body.layer }), name: downloadName(title, "html"), warnings };
   }
   if (kind === "png") {
-    const layers = [...Object.keys(r.results), ...(r.summary ? [SUMMARY] : [])];
+    const layers = [...Object.keys(view.results), ...(view.summary ? [SUMMARY] : [])];
     const selected = body.all ? layers : [body.layer];
     if (!body.all && !layers.includes(body.layer)) throw new ApiError(400, "Zvolená vrstva nemá výsledek (typ bez kontejnerů?).");
     const files = [];
     for (const k of selected) {
-      const d = k === SUMMARY ? r.summary : r.results[k];
+      const d = k === SUMMARY ? view.summary : view.results[k];
       const blob = await exports.png({ ...common, d, layer: k, basemapMode: body.basemap || "auto" });
       files.push({ name: downloadName(title, "png", k), blob });
     }
@@ -405,16 +469,16 @@ export async function exportData(kind, body) {
 // ------------------------------------------------------------------ states for sharing
 
 /** The open area and current containers as a state object to save to a file. */
-export async function stateForSaving({ name, description, order, bands, layer, containers }) {
+export async function stateForSaving({ name, description, order, bands, layer, mode, containers }) {
   requireArea();
   if (containers) await setContainers(containers);
   if (!S.containers.features.length) throw new ApiError(400, "Zatím není zadaný žádný kontejner.");
   const o = await db.get("areas", S.slug);
   const used = new Set(S.containers.features.map((f) => f.properties.typ));
   return createState({
-    name, description, order, meta: o.meta, network: o.network, basemap: o.basemap,
+    name, description, order, meta: o.meta, network: o.network, basemap: o.basemap, exclusions: S.exclusions,
     types: S.types.filter((t) => !t.temporary || used.has(t.key)),
-    containers: S.containers, display: { bands: bands || CONFIG.bands_m, layer },
+    containers: S.containers, display: { bands: bands || CONFIG.bands_m, layer, mode },
   });
 }
 
@@ -447,6 +511,8 @@ export async function takeOverState(o) {
     backup = `před načtením „${o.name}“ ${t.toLocaleDateString("cs-CZ")} ${t.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" })}`.slice(0, 80);
     await saveVariant(backup);
   }
+  // the network exclusions of the state replace those of the area
+  await setExclusions(normaliseExclusions(o.area.exclusions));
   // types from the state that are not in the configuration are added temporarily
   for (const t of o.types) if (!S.types.some((x) => x.key === t.key)) S.types.push({ ...t, temporary: true });
   const warnings = await setContainers(o.containers);

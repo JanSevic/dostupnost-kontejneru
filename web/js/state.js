@@ -2,6 +2,8 @@
 // (walking network, basemap, containers, bands). Works in the browser and in Node (index generator).
 import { buildNetwork } from "./network.js";
 import { computeType, summary } from "./compute.js";
+import { normaliseCollection, sourcesByType, summaryKeys } from "./collection.js";
+import { normaliseExclusions, exclusionMask, evaluatedLengths } from "./exclusions.js";
 
 export const FORMAT = "dostupnost-kontejneru/state";
 export const VERSION = 1;
@@ -25,7 +27,8 @@ export function stateFileName(name, order) {
 
 /**
  * Builds a state for saving.
- * @param {object} a {name, description, order, meta (area), network {nodes, edges}, basemap (GeoJSON), types, containers (GeoJSON), display}
+ * @param {object} a {name, description, order, meta (area), network {nodes, edges}, basemap (GeoJSON), exclusions,
+ *   types, containers (GeoJSON incl. collection settings "sber"), display {bands, layer, mode}}
  */
 export function createState(a) {
   const name = String(a.name || "").trim();
@@ -49,12 +52,14 @@ export function createState(a) {
           geometry: { type: f.geometry.type, coordinates: roundCoordinates(f.geometry.coordinates, r5) },
         })),
       },
+      exclusions: normaliseExclusions(a.exclusions),
     },
     types: a.types.map((t) => ({ key: t.key, name: t.name, color: t.color, abbr: t.abbr })),
     containers: a.containers,
     display: {
       bands: a.display.bands.map(Number),
       layer: a.display.layer || SUMMARY_KEY,
+      mode: a.display.mode === "continuous" ? "continuous" : "bands",
     },
   };
 }
@@ -95,25 +100,29 @@ export function sortStateList(entries) {
   });
 }
 
-/** Builds the network and computes distances for all types that have containers, plus the summary. */
+/**
+ * Builds the network and computes distances for all types that have containers (own or shared), plus the
+ * summary over types without door-to-door collection. `lengths` are segment lengths for statistics
+ * (0 for segments excluded from evaluation, `excluded` = 1).
+ */
 export function computeState(o, segmentLength = 10) {
   const net = buildNetwork(o.area.network, o.area.bbox, segmentLength);
   const names = Object.fromEntries(o.types.map((t) => [t.key, t.name]));
-  const byType = {};
-  for (const f of o.containers.features) {
-    (byType[f.properties.typ] ||= []).push({ id: f.properties.id, lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] });
-  }
+  const collection = normaliseCollection(o.containers.sber);
+  const sources = sourcesByType(o.containers, o.types, collection);
   const results = {}, nodes = {}, warnings = [];
   for (const t of o.types) {
-    if (!byType[t.key]) continue;
-    const r = computeType(net, names[t.key], byType[t.key]);
+    if (!sources[t.key]) continue;
+    const r = computeType(net, names[t.key], sources[t.key]);
     results[t.key] = r.d;
     nodes[t.key] = r.dNodes;
     warnings.push(...r.warnings);
   }
-  const keys = Object.keys(results);
+  const keys = summaryKeys(Object.keys(results), collection);
   const all = keys.length ? summary(keys.map((k) => results[k]), net.segments.count) : null;
-  return { net, results, nodes, summary: all, summaryTypes: keys, warnings };
+  const excluded = exclusionMask(o.area.network, net, normaliseExclusions(o.area.exclusions));
+  const lengths = evaluatedLengths(net.segments.length, excluded);
+  return { net, results, nodes, summary: all, summaryTypes: keys, warnings, collection, excluded, lengths };
 }
 
 /** Layers with a result: types with containers in state order, summary last. */
@@ -134,7 +143,7 @@ export function shareWithin(d, lengths, limit) {
 
 /** Share of the network within each limit for every layer: {key: [share ≤ l1, share ≤ l2, …]} */
 export function compareState(o, result, limits) {
-  const lengths = result.net.segments.length, out = {};
+  const lengths = result.lengths, out = {};
   for (const k of stateLayers(o, result)) {
     const d = k === SUMMARY_KEY ? result.summary : result.results[k];
     out[k] = limits.map((h) => shareWithin(d, lengths, h));

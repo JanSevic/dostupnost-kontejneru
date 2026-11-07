@@ -1,5 +1,14 @@
 # Progress log (newest first)
 
+## 2026-11-07 (later)
+- Added carton and cooking-oil types (config.json, config.py, web config.js).
+- Web only: continuous colour scale toggle in the viewer; network exclusions (polygons + single edges,
+  `js/exclusions.js`, `/api/exclusions…`); collection settings – door-to-door and multi-commodity
+  (`js/collection.js`, foreign member `sber` of the container GeoJSON). State format gained
+  `area.exclusions` and `display.mode`. Python version does not have these yet (its normaliser drops `sber`).
+- Verified: node 29 passed; headless-Chrome checks of viewer and editor (dialog, polygon drawing,
+  segment toggling, exports).
+
 ## 2026-11-07
 - Created `CLAUDE.md` and this `claude/` folder.
 - Finished the open part of HANDOFF.md (web sharing with council members):

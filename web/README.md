@@ -28,6 +28,38 @@ v prohlížeči. Má dvě stránky:
    automaticky z obsahu složky `presets/`. Odkaz na konkrétní stav a vrstvu zkopíruješ
    na hlavní stránce tlačítkem **kopírovat odkaz** (např. `…/#stav=02-navrh-1&vrstva=plast`).
 
+### Způsob sběru (sdružený sběr, svoz od domu)
+
+V sekci **2 Kontejnery** je odkaz **Způsob sběru…**. Pro každý typ odpadu tam nastavíš:
+
+- **Svoz od domu** – komoditu mají všichni doma (pytle, popelnice u domu). Kontejnery tohoto typu,
+  které rozmístíš, jsou jen **záložní místa**. Vrstva typu ukazuje vzdálenost k nim („Papír – záložní
+  místa“) a typ se **nepočítá do souhrnu „Všechny typy“**.
+- **Sbírá se také do kontejnerů** – sdružený sběr, např. kovy a nápojové kartony do kontejnerů na plast.
+  Vzdálenost se pak počítá k nejbližšímu kontejneru kteréhokoli z uvedených typů (vlastní kontejnery
+  typu mít nemusí).
+
+Nastavení patří k rozmístění kontejnerů: ukládá se do variant, do stažené GeoJSON (položka `sber`)
+i do uloženého stavu, takže každý návrh může mít jiný způsob sběru. Desktopová (Python) verze ho zatím neumí.
+
+### Vyloučení částí sítě
+
+V sekci **1 Oblast → Úprava sítě**:
+
+- **Vyloučit oblast…** – klikáním do mapy obkreslíš území (např. les, pole) a dokončíš dvojklikem
+  nebo tlačítkem Hotovo (Esc zruší).
+- **Vyloučit / vrátit úseky** – klikem na pěší síť vyloučíš celý úsek mezi dvěma křižovatkami,
+  dalším klikem ho vrátíš.
+
+Vyloučené části se nekreslí a nepočítají do statistik ani do srovnání stavů a nejsou v exportech.
+Chodit se po nich dá dál, takže vzdálenosti jinde se nezmění. Vyloučení patří k oblasti a ukládá se
+i do stavu pro web. Seznam vyloučených oblastí (s možností smazání) je pod tlačítky.
+
+### Barvy v prohlížení
+
+Zastupitelé si mohou přepnout barvy mezi **pásmy** a **spojitou škálou**. Výchozí volba se bere
+z režimu úprav v okamžiku uložení stavu (Výpočet → Barvy).
+
 Stav smažeš smazáním jeho souboru ze složky `presets/`. Opravu uděláš tak, že stav otevřeš
 v režimu úprav (**Otevřít stav k úpravám…** – ze zveřejněného seznamu nebo ze souboru),
 upravíš a uložíš znovu se stejným názvem a pořadím (vznikne soubor se stejným jménem).
@@ -36,7 +68,8 @@ Při otevření stavu se dosavadní kontejnery oblasti nejdřív uloží jako va
 ## Co vidí zastupitelé
 
 - výběr stavu, jeho popis a počty kontejnerů,
-- volbu vrstvy (jednotlivé typy odpadu a Všechny typy) s legendou,
+- volbu vrstvy (jednotlivé typy odpadu a Všechny typy) s legendou a přepínačem pásma / spojitá škála,
+- popis způsobu sběru (svoz od domu, sdružený sběr),
 - délku pěší sítě v pásmech (km a %),
 - **Srovnání stavů**: tabulka s podílem sítě do hranic pásem pro každý stav a vrstvu
   (stavy se načtou až po kliknutí),
@@ -114,6 +147,8 @@ index.html, js/viewer.js     prohlížení pro zastupitele
 upravy.html, js/editor.js    režim úprav
 js/backend.js                „server“ režimu úprav v prohlížeči (stejná volání /api/… jako Python verze)
 js/state.js                  formát uloženého stavu, odkazy, srovnání
+js/collection.js             způsob sběru (svoz od domu, sdružený sběr)
+js/exclusions.js             vyloučené části sítě
 js/compute.js, network.js, osm.js, geo.js   výpočet a data OSM
 js/render.js                 společné vykreslování (i pro exportované HTML)
 js/exports.js                exporty GeoJSON, HTML, PNG, ZIP

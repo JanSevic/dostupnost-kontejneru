@@ -57,7 +57,8 @@ test("a state survives saving and loading without loss", () => {
   assert.equal(n.description, "Rozmístění k 1. 11. 2026");
   assert.deepEqual(n.containers, containers());
   assert.deepEqual(n.types, TYPES);
-  assert.deepEqual(n.display, { bands: [100, 200], layer: "plast" });
+  assert.deepEqual(n.display, { bands: [100, 200], layer: "plast", mode: "bands" });
+  assert.deepEqual(n.area.exclusions, { polygons: [], edges: [] });
   assert.deepEqual(n.area.network.edges, wn.edges);
   n.area.network.nodes.forEach(([x, y], i) => {
     assert.ok(Math.abs(x - wn.nodes[i][0]) <= 6e-7 && Math.abs(y - wn.nodes[i][1]) <= 6e-7, `node ${i}`);

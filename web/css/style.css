@@ -170,3 +170,21 @@ dialog h4 { margin: 14px 0 4px; font-size: 14px; }
 .label-wrap span.label-place { font-size: 15px; font-weight: 700; color: #2b2f35; letter-spacing: .02em; }
 .label-wrap span.label-hamlet, .label-wrap span.label-suburb { font-size: 13px; }
 .label-wrap span.label-neighbourhood, .label-wrap span.label-isolated_dwelling { font-size: 12px; }
+
+/* network editing, collection settings */
+#map.picking { cursor: pointer; }
+h3.subhead { font-size: 13px; margin: 14px 0 2px; }
+.mini-list { list-style: none; padding: 0; margin: 6px 0 0; font-size: 13px; }
+.mini-list li { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.mini-list li button { margin-left: auto; }
+.edit-bar { position: absolute; top: 12px; left: calc(50% + var(--panel-width) / 2); transform: translateX(-50%); z-index: 1100;
+  max-width: min(640px, 90vw); background: #fff; border: 2px solid #b42318; border-radius: 10px; padding: 8px 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3); display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.edit-bar[hidden] { display: none; }
+body.collapsed .edit-bar { left: 50%; }
+.table-scroll { overflow-x: auto; }
+.collection-table { border-collapse: collapse; font-size: 13px; margin: 8px 0; }
+.collection-table th, .collection-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #eef0f2; vertical-align: top; }
+.collection-table td:first-child { white-space: nowrap; }
+.collection-table .chip { display: inline-flex; align-items: center; gap: 3px; margin: 0 8px 3px 0; white-space: nowrap; }
+@media (max-width: 760px) { .edit-bar { left: 50%; } }

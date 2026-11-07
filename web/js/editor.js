@@ -1,6 +1,8 @@
 /* Dostupnost kontejnerů – editor UI logic (web version, everything runs in the browser). */
 import { call, areaFromOsm, exportData, initialise, stateForSaving, takeOverState, savePreview } from "./backend.js";
 import { stateFileName, validateState, buildLink } from "./state.js";
+import { normaliseCollection, isDoorToDoor, sharedWith, layerLabel } from "./collection.js";
+import { evaluatedLengths } from "./exclusions.js";
 
 (function () {
   "use strict";
@@ -13,6 +15,13 @@ import { stateFileName, validateState, buildLink } from "./state.js";
     typesByKey: {},
     activeType: null,
     containers: [], // {id, typ, poznamka, lat, lon}
+    collection: {}, // collection settings ("sber" of the container GeoJSON)
+    excluded: new Uint8Array(0), // 1 = segment excluded from evaluation
+    exclusions: { polygons: [], edges: [] },
+    exclusionLayer: null,
+    netMode: null, // null | "polygon" | "edge"
+    draft: [],
+    draftLayer: null,
     markers: new Map(),
     netVersion: 0,
     segments: null,
@@ -88,7 +97,7 @@ import { stateFileName, validateState, buildLink } from "./state.js";
 
   function layerName(k) {
     if (k === SUMMARY) return "Všechny typy";
-    return S.typesByKey[k] ? S.typesByKey[k].name : k;
+    return S.typesByKey[k] ? layerLabel(S.typesByKey[k], S.collection) : k;
   }
 
   // ------------------------------------------------------------------ start
@@ -158,10 +167,15 @@ import { stateFileName, validateState, buildLink } from "./state.js";
     map.on("popupclose", () => { S.popupOpen = false; });
     map.on("preclick", () => { S.popupOnClick = S.popupOpen; });
     map.on("click", (e) => {
+      if (S.netMode === "polygon") { addDraftVertex(e.latlng); return; }
+      if (S.netMode === "edge") return; // handled by the network lines
       if (S.popupOnClick) return; // the click only closed the popup
       if (!$("chk-add").checked) return;
       addContainer(e.latlng);
     });
+    map.on("dblclick", () => { if (S.netMode === "polygon") finishNetEdit(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.netMode) cancelNetEdit(); });
+    S.exclusionLayer = L.layerGroup().addTo(map);
     map.on("moveend", () => {
       const c = map.getCenter();
       stored("view", { lat: c.lat, lon: c.lng, zoom: map.getZoom() });
@@ -170,7 +184,8 @@ import { stateFileName, validateState, buildLink } from "./state.js";
   }
 
   function updateCursor() {
-    $("map").classList.toggle("adding", $("chk-add").checked);
+    $("map").classList.toggle("adding", S.netMode === "polygon" || (!S.netMode && $("chk-add").checked));
+    $("map").classList.toggle("picking", S.netMode === "edge");
   }
 
   // ------------------------------------------------------------------ controls
@@ -219,6 +234,11 @@ import { stateFileName, validateState, buildLink } from "./state.js";
     $("btn-export-html").onclick = () => runExport("html");
     $("btn-export-png").onclick = () => runExport("png");
     $("btn-export-qgis").onclick = () => runExport("geojson");
+    $("btn-collection").onclick = openCollectionDialog;
+    $("btn-exclude-area").onclick = () => startNetEdit("polygon");
+    $("btn-exclude-edges").onclick = () => startNetEdit("edge");
+    $("btn-net-edit-done").onclick = finishNetEdit;
+    $("btn-net-edit-cancel").onclick = cancelNetEdit;
     $("btn-save-state").onclick = openSaveState;
     $("btn-preview").onclick = openPreview;
     $("btn-open-state").onclick = openStateDialog;
@@ -292,9 +312,11 @@ import { stateFileName, validateState, buildLink } from "./state.js";
       b.setAttribute("role", "radio");
       b.setAttribute("aria-checked", String(t.key === S.activeType));
       b.title = t.temporary ? "Dočasný typ (není v konfiguraci)" : "Aktivní typ pro přidávání";
+      if (isDoorToDoor(S.collection, t.key)) b.title += " · svoz od domu, kontejnery jsou záložní místa";
       const light = R.isLightColor(t.color);
       b.innerHTML = '<span class="dot" style="background:' + t.color + ";color:" + (light ? "#222" : "#fff") + '">' +
-        R.escapeHtml(t.abbr) + "</span>" + R.escapeHtml(t.name) + ' <span class="count">' + (counts[t.key] || 0) + "</span>";
+        R.escapeHtml(t.abbr) + "</span>" + R.escapeHtml(t.name) + ' <span class="count">' + (counts[t.key] || 0) +
+        (isDoorToDoor(S.collection, t.key) ? " · od domu" : "") + "</span>";
       b.onclick = () => {
         S.activeType = t.key;
         stored("active", t.key);
@@ -321,13 +343,15 @@ import { stateFileName, validateState, buildLink } from "./state.js";
       lat: f.geometry.coordinates[1],
     }));
     S.containers.forEach(createMarker);
+    S.collection = normaliseCollection(fc.sber);
+    showCollectionSummary();
     redrawList();
     redrawTypes();
   }
 
   function toFc() {
     const r7 = (x) => Math.round(x * 1e7) / 1e7;
-    return {
+    const fc = {
       type: "FeatureCollection",
       features: S.containers.map((k) => ({
         type: "Feature",
@@ -335,6 +359,8 @@ import { stateFileName, validateState, buildLink } from "./state.js";
         properties: { id: k.id, typ: k.typ, poznamka: k.poznamka },
       })),
     };
+    if (Object.keys(S.collection).length) fc.sber = S.collection;
+    return fc;
   }
 
   function hasProblem(p) {
@@ -819,6 +845,7 @@ import { stateFileName, validateState, buildLink } from "./state.js";
     S.netVersion = d.version;
     S.segments = d.segments;
     S.lengths = d.lengths;
+    setExcluded(d.excluded);
     S.results = {};
     S.summary = null;
     S.stale.clear();
@@ -828,9 +855,13 @@ import { stateFileName, validateState, buildLink } from "./state.js";
     S.networkGroup = L.featureGroup(S.lines);
     S.networkGroup.bindTooltip((l) => {
       const v = currentValues();
+      if (S.excluded[l.options.idx]) return "vyloučeno z hodnocení" + (S.netMode === "edge" ? " – klikni pro vrácení" : "");
+      if (S.netMode === "edge") return "klikni pro vyloučení úseku";
       if (!v) return "pěší síť";
       return R.escapeHtml(layerName(S.layer)) + ": " + R.formatM(v[l.options.idx]);
     }, { sticky: true, direction: "top", offset: [0, -8] });
+    S.networkGroup.on("click", (e) => { if (S.netMode === "edge") toggleSegment(e.layer.options.idx); });
+    loadExclusions();
     if (S.areaOutline) map.removeLayer(S.areaOutline);
     S.areaOutline = L.polygon(d.area.map((p) => [p[1], p[0]]), {
       color: "#334155", weight: 1.2, dashArray: "5 5", fill: false, interactive: false,
@@ -857,22 +888,28 @@ import { stateFileName, validateState, buildLink } from "./state.js";
       return;
     }
     const d = currentValues();
-    const show = d || $("chk-show-network").checked;
+    const show = d || $("chk-show-network").checked || S.netMode;
     if (show && !map.hasLayer(S.networkGroup)) S.networkGroup.addTo(map);
     if (!show && map.hasLayer(S.networkGroup)) map.removeLayer(S.networkGroup);
     if (d) {
       const s = S.settings;
       for (let i = 0; i < S.lines.length; i++) {
-        S.lines[i].setStyle({ color: R.color(d[i], s), weight: 4, opacity: 0.95 });
+        S.lines[i].setStyle(S.excluded[i] ? EXCLUDED_STYLE : { color: R.color(d[i], s), weight: 4, opacity: 0.95, dashArray: null });
       }
+      const door = S.types.filter((t) => isDoorToDoor(S.collection, t.key));
       const caption = S.layer === SUMMARY
-        ? "nejdelší z cest k nejbližším kontejnerům typů: " + S.summaryTypes.map(layerName).join(", ")
-        : "vzdálenost po pěších cestách k nejbližšímu kontejneru";
+        ? "nejdelší z cest k nejbližším kontejnerům typů: " + S.summaryTypes.map(layerName).join(", ") +
+          (door.length ? " (svoz od domu se nezapočítává)" : "")
+        : isDoorToDoor(S.collection, S.layer)
+          ? "svoz od domu – vzdálenost k nejbližšímu záložnímu místu"
+          : "vzdálenost po pěších cestách k nejbližšímu kontejneru";
       legendDiv.innerHTML = R.legendHtml(s, layerName(S.layer) + (S.stale.has(S.layer) ? " (neaktuální)" : ""), caption);
       legendDiv.hidden = false;
       showStats(d);
     } else {
-      for (let i = 0; i < S.lines.length; i++) S.lines[i].setStyle({ color: "#4b5563", weight: 2, opacity: 0.7 });
+      for (let i = 0; i < S.lines.length; i++) {
+        S.lines[i].setStyle(S.excluded[i] ? EXCLUDED_STYLE : { color: "#4b5563", weight: 2, opacity: 0.7, dashArray: null });
+      }
       legendDiv.hidden = true;
       $("stats").innerHTML = "";
     }
@@ -880,8 +917,9 @@ import { stateFileName, validateState, buildLink } from "./state.js";
   }
 
   function showStats(d) {
-    const rows = R.statistics(d, S.lengths, S.settings);
-    let h = '<div class="muted">Délka sítě v pásmech (celé načtené území):</div><table>';
+    const rows = R.statistics(d, evaluatedLengths(S.lengths, S.excluded), S.settings);
+    const part = S.excluded.some(Boolean) ? "načtené území bez vyloučených částí" : "celé načtené území";
+    let h = '<div class="muted">Délka sítě v pásmech (' + part + "):</div><table>";
     rows.forEach((r) => {
       h += '<tr><td><span class="line" style="background:' + r.color + '"></span>' + r.label + '</td><td class="num">' +
         r.km.toFixed(2).replace(".", ",") + ' km</td><td class="num">' + Math.round(r.share * 100) + " %</td></tr>";
@@ -894,7 +932,7 @@ import { stateFileName, validateState, buildLink } from "./state.js";
   function refreshLayers() {
     const box = $("layers");
     box.innerHTML = "";
-    const items = [[null, "jen síť (bez výsledku)"]].concat(S.types.map((t) => [t.key, t.name]), [[SUMMARY, "Všechny typy (souhrn)"]]);
+    const items = [[null, "jen síť (bez výsledku)"]].concat(S.types.map((t) => [t.key, layerName(t.key)]), [[SUMMARY, "Všechny typy (souhrn)"]]);
     items.forEach(([k, name]) => {
       const lab = document.createElement("label");
       const r = document.createElement("input");
@@ -1150,6 +1188,185 @@ import { stateFileName, validateState, buildLink } from "./state.js";
     }
   }
 
+  // ------------------------------------------------------------------ collection settings
+
+  function showCollectionSummary() {
+    const name = (k) => (S.typesByKey[k] || { name: k }).name;
+    const parts = [];
+    const door = S.types.filter((t) => isDoorToDoor(S.collection, t.key)).map((t) => t.name);
+    if (door.length) parts.push("od domu: " + door.join(", "));
+    S.types.forEach((t) => {
+      const also = sharedWith(S.collection, t.key).filter((k) => S.typesByKey[k]);
+      if (also.length) parts.push(t.name + " i do: " + also.map(name).join(", "));
+    });
+    $("collection-summary").textContent = parts.length ? parts.join(" · ") : "Každý typ má vlastní kontejnery.";
+  }
+
+  function openCollectionDialog() {
+    const table = $("collection-table");
+    table.innerHTML = "<thead><tr><th>Typ</th><th>Svoz od domu</th><th>Sbírá se také do kontejnerů</th></tr></thead>";
+    const body = document.createElement("tbody");
+    S.types.forEach((t) => {
+      const tr = document.createElement("tr");
+      tr.dataset.key = t.key;
+      let h = '<td><span class="dot small-dot" style="background:' + t.color + '"></span> ' + R.escapeHtml(t.name) + "</td>" +
+        '<td><label><input type="checkbox" class="chk-door"' + (isDoorToDoor(S.collection, t.key) ? " checked" : "") + "> od domu</label></td><td>";
+      S.types.filter((o) => o.key !== t.key).forEach((o) => {
+        h += '<label class="chip"><input type="checkbox" class="chk-shared" value="' + o.key + '"' +
+          (sharedWith(S.collection, t.key).includes(o.key) ? " checked" : "") + "> " + R.escapeHtml(o.name) + "</label>";
+      });
+      tr.innerHTML = h + "</td>";
+      body.append(tr);
+    });
+    table.append(body);
+    const dlg = $("dlg-collection");
+    dlg.returnValue = "";
+    dlg.onclose = () => {
+      if (dlg.returnValue !== "ok") return;
+      const raw = {};
+      table.querySelectorAll("tbody tr").forEach((tr) => {
+        raw[tr.dataset.key] = {
+          od_domu: tr.querySelector(".chk-door").checked,
+          spolu_s: Array.from(tr.querySelectorAll(".chk-shared:checked"), (c) => c.value),
+        };
+      });
+      S.collection = normaliseCollection(raw);
+      showCollectionSummary();
+      S.snaps = {};
+      changed(S.types.map((t) => t.key));
+      refreshLayers();
+      redrawNetwork();
+      toast("Způsob sběru uložen – výsledky spočítej znovu.");
+    };
+    dlg.showModal();
+  }
+
+  // ------------------------------------------------------------------ network exclusions
+
+  const EXCLUDED_STYLE = { color: "#9aa0a6", weight: 1.5, opacity: 0.8, dashArray: "3 5" };
+
+  function setExcluded(list) {
+    S.excluded = new Uint8Array(S.segments ? S.segments.length : 0);
+    (list || []).forEach((k) => { if (k < S.excluded.length) S.excluded[k] = 1; });
+  }
+
+  async function loadExclusions() {
+    try {
+      applyExclusions(await api("GET", "/api/exclusions"));
+    } catch (e) { /* no area */ }
+  }
+
+  function applyExclusions(r) {
+    S.exclusions = { polygons: r.polygons || [], edges: r.edges || [] };
+    setExcluded(r.excluded);
+    S.exclusionLayer.clearLayers();
+    S.exclusions.polygons.forEach((ring, i) => {
+      L.polygon(ring.map(([lon, lat]) => [lat, lon]), {
+        color: "#6b7280", weight: 1.2, dashArray: "4 3", fillColor: "#9ca3af", fillOpacity: 0.15, interactive: false, idx: i,
+      }).addTo(S.exclusionLayer);
+    });
+    const ul = $("exclusion-list");
+    ul.innerHTML = "";
+    S.exclusions.polygons.forEach((_, i) => {
+      const li = document.createElement("li");
+      li.append(document.createTextNode("Vyloučená oblast " + (i + 1)));
+      const b = Object.assign(document.createElement("button"), { className: "link", textContent: "smazat" });
+      b.onclick = () => saveExclusions({ polygons: S.exclusions.polygons.filter((__, j) => j !== i), edges: S.exclusions.edges });
+      li.onmouseenter = () => highlightPolygon(i, true);
+      li.onmouseleave = () => highlightPolygon(i, false);
+      li.append(b);
+      ul.append(li);
+    });
+    if (S.exclusions.edges.length) {
+      const li = document.createElement("li");
+      li.append(document.createTextNode("Vyloučené úseky: " + S.exclusions.edges.length));
+      const b = Object.assign(document.createElement("button"), { className: "link", textContent: "vrátit všechny" });
+      b.onclick = () => saveExclusions({ polygons: S.exclusions.polygons, edges: [] });
+      li.append(b);
+      ul.append(li);
+    }
+    let km = 0;
+    for (let k = 0; k < S.excluded.length; k++) if (S.excluded[k]) km += S.lengths[k] / 1000;
+    $("exclusion-summary").textContent = km > 0 ? "Z hodnocení je vyloučeno " + km.toFixed(2).replace(".", ",") + " km pěší sítě." : "";
+    redrawNetwork();
+  }
+
+  function highlightPolygon(i, on) {
+    S.exclusionLayer.eachLayer((l) => {
+      if (l.options.idx === i) l.setStyle(on ? { color: "#b42318", weight: 2.5, fillOpacity: 0.3 } : { color: "#6b7280", weight: 1.2, fillOpacity: 0.15 });
+    });
+  }
+
+  async function saveExclusions(ex) {
+    try {
+      applyExclusions(await api("PUT", "/api/exclusions", ex));
+    } catch (e) {
+      toast(e.message, { error: true });
+    }
+  }
+
+  async function toggleSegment(idx) {
+    try {
+      applyExclusions(await api("POST", "/api/exclusions/toggle-segment", { segment: idx }));
+    } catch (e) {
+      toast(e.message, { error: true });
+    }
+  }
+
+  function startNetEdit(mode) {
+    if (!S.netVersion) {
+      toast("Nejdřív vyber nebo připrav oblast.", { error: true });
+      return;
+    }
+    if (S.netMode) cancelNetEdit();
+    S.netMode = mode;
+    S.draft = [];
+    if (mode === "polygon") map.doubleClickZoom.disable();
+    $("net-edit-text").textContent = mode === "polygon"
+      ? "Klikáním do mapy obkresli oblast, kterou nechceš hodnotit (např. les). Dokonči dvojklikem nebo tlačítkem Hotovo."
+      : "Klikni na úsek pěší sítě – vyloučí se celý úsek mezi dvěma křižovatkami. Dalším klikem ho vrátíš.";
+    $("btn-net-edit-cancel").hidden = mode !== "polygon";
+    $("net-edit-bar").hidden = false;
+    map.closePopup();
+    updateCursor();
+    redrawNetwork();
+  }
+
+  function addDraftVertex(latlng) {
+    const last = S.draft[S.draft.length - 1];
+    if (last && Math.abs(last.lat - latlng.lat) < 1e-7 && Math.abs(last.lng - latlng.lng) < 1e-7) return;
+    S.draft.push(latlng);
+    if (S.draftLayer) map.removeLayer(S.draftLayer);
+    S.draftLayer = (S.draft.length >= 3 ? L.polygon(S.draft) : L.polyline(S.draft))
+      .setStyle({ color: "#b42318", weight: 2, dashArray: "5 4", fillOpacity: 0.1, interactive: false }).addTo(map);
+  }
+
+  function endNetEdit() {
+    S.netMode = null;
+    S.draft = [];
+    if (S.draftLayer) map.removeLayer(S.draftLayer);
+    S.draftLayer = null;
+    map.doubleClickZoom.enable();
+    $("net-edit-bar").hidden = true;
+    updateCursor();
+    redrawNetwork();
+  }
+
+  function cancelNetEdit() {
+    endNetEdit();
+  }
+
+  function finishNetEdit() {
+    const mode = S.netMode, draft = S.draft.slice();
+    endNetEdit();
+    if (mode !== "polygon") return;
+    if (draft.length < 3) {
+      toast("Oblast potřebuje aspoň tři body.", { error: true });
+      return;
+    }
+    saveExclusions({ polygons: S.exclusions.polygons.concat([draft.map((p) => [p.lng, p.lat])]), edges: S.exclusions.edges });
+  }
+
   // ------------------------------------------------------------------ sharing
 
   function requireContainers() {
@@ -1167,7 +1384,8 @@ import { stateFileName, validateState, buildLink } from "./state.js";
   /** Layers a state can show: types with containers + summary. */
   function availableLayers() {
     const used = new Set(S.containers.map((k) => k.typ));
-    return S.types.filter((t) => used.has(t.key)).map((t) => t.key).concat([SUMMARY]);
+    const served = (t) => used.has(t.key) || sharedWith(S.collection, t.key).some((o) => used.has(o));
+    return S.types.filter(served).map((t) => t.key).concat([SUMMARY]);
   }
 
   function defaultLayer() {
@@ -1205,7 +1423,7 @@ import { stateFileName, validateState, buildLink } from "./state.js";
       const changesWhenSent = changeCounter;
       try {
         const o = await stateForSaving({ name, description: $("state-description").value, order, bands: S.settings.bands,
-          layer: sel.value, containers: toFc() });
+          layer: sel.value, mode: S.settings.mode, containers: toFc() });
         containersSent(changesWhenSent);
         const file = stateFileName(name, order);
         downloadBlob(new Blob([JSON.stringify(o)], { type: "application/json" }), file);
@@ -1229,7 +1447,7 @@ import { stateFileName, validateState, buildLink } from "./state.js";
     try {
       const layer = defaultLayer();
       const o = await stateForSaving({ name: "Náhled (nezveřejněno)", description: "Náhled z režimu úprav – zatím není zveřejněný.",
-        bands: S.settings.bands, layer, containers: toFc() });
+        bands: S.settings.bands, layer, mode: S.settings.mode, containers: toFc() });
       containersSent(changesWhenSent);
       await savePreview(o);
       const url = "index.html" + buildLink({ preview: true, layer });

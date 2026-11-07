@@ -32,6 +32,7 @@
       </div>
       <p id="state-description" class="state-description"></p>
       <div id="state-meta" class="muted small"></div>
+      <div id="state-collection" class="small state-collection" hidden></div>
       <div class="row">
         <button id="btn-copy-link" class="link" title="Zkopíruje odkaz na tento stav a vrstvu">kopírovat odkaz</button>
       </div>
@@ -40,6 +41,11 @@
     <section id="sec-layer">
       <h2>Co ukázat na mapě</h2>
       <div id="layers" class="layers" role="radiogroup" aria-label="Vrstva"></div>
+      <div class="row gap">
+        <span>Barvy:</span>
+        <label><input type="radio" name="mode" value="bands" checked> pásma</label>
+        <label><input type="radio" name="mode" value="continuous"> spojitá škála</label>
+      </div>
     </section>
 
     <section id="sec-stats">
@@ -58,6 +64,10 @@
             typů – tedy jak daleko je to k tomu typu, který je odsud nejdál.</p>
           <p>Vzdálenost se měří po cestách, ne vzdušnou čarou. Započítá se i krátká přípojka od cesty ke kontejneru.
             Cyklostezky se počítají jako pěší, pokud nejsou pro chodce zakázané.</p>
+          <p><b>Svoz od domu:</b> komoditu mají všichni doma, proto se nepočítá do „Všech typů“. Její vrstva ukazuje
+            vzdálenost k záložním místům. <b>Sdružený sběr:</b> když se komodita sbírá i do kontejnerů jiného typu
+            (např. kovy do plastu), počítá se vzdálenost k nejbližšímu z nich.</p>
+          <p>Části sítě, které nemá smysl hodnotit (např. cesty v lese), autor z mapy i ze statistik vyřadil.</p>
           <p>Tabulka „Délka pěší sítě v pásmech“ ukazuje, jaká část všech pěších cest v oblasti spadá do jednotlivých pásem.
             Výsledek závisí na tom, jak úplně jsou cesty zmapované v OpenStreetMap.</p>
           <p>Najetím myší (nebo klepnutím) na čáru se ukáže přesná vzdálenost, na značku kontejneru jeho typ a poznámka.</p>

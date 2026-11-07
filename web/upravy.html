@@ -42,11 +42,24 @@
       <div class="row">
         <label><input type="checkbox" id="chk-show-network" checked> ukázat pěší síť</label>
       </div>
+      <h3 class="subhead">Úprava sítě</h3>
+      <p class="hint">Vyloučené části (např. cesty v lese nebo v polích) se nezobrazují a nepočítají do statistik.
+        Chodit se po nich dá dál, takže vzdálenosti jinde se nemění.</p>
+      <div class="row">
+        <button id="btn-exclude-area" title="Obkreslíš oblast, ve které se síť nebude hodnotit">Vyloučit oblast…</button>
+        <button id="btn-exclude-edges" title="Klikáním na mapu vyloučíš nebo vrátíš jednotlivé úseky">Vyloučit / vrátit úseky</button>
+      </div>
+      <ul id="exclusion-list" class="mini-list"></ul>
+      <div id="exclusion-summary" class="muted small"></div>
     </section>
 
     <section>
       <h2><span class="num">2</span> Kontejnery</h2>
       <div id="types" class="types" role="radiogroup" aria-label="Aktivní typ odpadu"></div>
+      <div class="row">
+        <button id="btn-collection" class="link" title="Sdružený sběr více komodit do jednoho kontejneru a svoz od domu">Způsob sběru…</button>
+        <span id="collection-summary" class="muted small"></span>
+      </div>
       <label class="gap"><input type="checkbox" id="chk-add" checked> přidávat kliknutím do mapy</label>
       <p class="hint">Klik do mapy = nový kontejner aktivního typu · tažení = přesun · klik na značku = poznámka, typ, smazání.</p>
       <div class="row">
@@ -116,6 +129,11 @@
 
   <button id="btn-expand" class="icon-btn expand" title="Zobrazit panel" aria-label="Zobrazit panel">»</button>
   <div id="map"></div>
+  <div id="net-edit-bar" class="edit-bar" hidden>
+    <span id="net-edit-text"></span>
+    <button id="btn-net-edit-done" class="primary">Hotovo</button>
+    <button id="btn-net-edit-cancel">Zrušit</button>
+  </div>
   <div id="busy" class="busy" hidden><span class="spinner"></span><span id="busy-text">Pracuji…</span></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
@@ -153,6 +171,22 @@
       <div class="row end gap">
         <button value="cancel">Zrušit</button>
         <button value="ok" id="btn-prepare-ok" class="primary">Připravit</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-collection">
+    <form method="dialog">
+      <h3>Způsob sběru</h3>
+      <p class="muted small"><b>Svoz od domu:</b> komoditu mají všichni doma (pytle, nádoby u domu). Kontejnery tohoto typu
+        jsou jen záložní místa a typ se nepočítá do souhrnu „Všechny typy“.<br>
+        <b>Sdružený sběr:</b> komodita se sbírá i do kontejnerů jiného typu (např. kovy a nápojové kartony do plastu).
+        Vzdálenost se pak počítá k nejbližšímu z nich.</p>
+      <div class="table-scroll"><table id="collection-table" class="collection-table"></table></div>
+      <p class="muted small">Nastavení se ukládá spolu s rozmístěním kontejnerů – do variant, stavů i souboru GeoJSON.</p>
+      <div class="row end gap">
+        <button value="cancel">Zrušit</button>
+        <button value="ok" class="primary">Použít</button>
       </div>
     </form>
   </dialog>

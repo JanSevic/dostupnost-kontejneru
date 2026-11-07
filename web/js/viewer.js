@@ -2,6 +2,7 @@
 import { CONFIG } from "./config.js";
 import { validateState, computeState, stateLayers, compareState, parseLink, buildLink, SUMMARY_KEY } from "./state.js";
 import * as db from "./storage.js";
+import { normaliseCollection, isDoorToDoor, describeCollection, layerLabel } from "./collection.js";
 
 (function () {
   "use strict";
@@ -24,6 +25,8 @@ import * as db from "./storage.js";
     vectorLayer: null,
     tileLayer: null,
     basemapMode: "tiles",
+    mode: null, // "bands" | "continuous"; null = as saved in the state
+    linesKey: null,
     compareShown: false,
   };
   let map, renderer, legendDiv;
@@ -66,15 +69,18 @@ import * as db from "./storage.js";
     return Object.fromEntries(o.types.map((t) => [t.key, t]));
   }
 
+  const collectionOf = (o) => normaliseCollection(o.containers.sber);
+
   function layerName(o, k) {
     if (k === SUMMARY_KEY) return "Všechny typy";
     const t = typesOf(o)[k];
-    return t ? t.name : k;
+    return t ? layerLabel(t, collectionOf(o)) : k;
   }
 
   function settingsFor(o) {
     const bands = o.display.bands.length === CONFIG.band_colors.length - 1 ? o.display.bands : CONFIG.bands_m;
-    return { mode: "bands", bands, band_colors: CONFIG.band_colors, unreachable_color: CONFIG.unreachable_color,
+    const mode = S.mode || (o.display.mode === "continuous" ? "continuous" : "bands");
+    return { mode, bands, band_colors: CONFIG.band_colors, unreachable_color: CONFIG.unreachable_color,
       continuous_max_m: CONFIG.continuous_max_m };
   }
 
@@ -181,6 +187,18 @@ import * as db from "./storage.js";
     $("state-select").onchange = (e) => showState(e.target.value, S.layer);
     $("btn-copy-link").onclick = copyLink;
     $("btn-compare").onclick = compareAll;
+    S.mode = ["bands", "continuous"].indexOf(stored("mode")) >= 0 ? stored("mode") : null;
+    document.querySelectorAll('input[name="mode"]').forEach((r) => {
+      r.onchange = () => {
+        S.mode = r.value;
+        stored("mode", r.value);
+        const rec = S.loaded.get(S.current);
+        if (!rec) return;
+        S.settings = settingsFor(rec.o);
+        redraw();
+        showHowToRead();
+      };
+    });
     S.basemapMode = ["tiles", "vector", "none"].indexOf(stored("basemap")) >= 0 ? stored("basemap") : "tiles";
     document.querySelectorAll('input[name="basemap"]').forEach((r) => {
       r.checked = r.value === S.basemapMode;
@@ -240,6 +258,7 @@ import * as db from "./storage.js";
       S.current = id;
       $("state-select").value = id;
       S.settings = settingsFor(o);
+      document.querySelectorAll('input[name="mode"]').forEach((r) => { r.checked = r.value === S.settings.mode; });
       const layers = stateLayers(o, result);
       S.layer = [preferredLayer, o.display.layer].find((k) => layers.indexOf(k) >= 0) || layers[layers.length - 1];
       drawArea(o, result);
@@ -269,16 +288,25 @@ import * as db from "./storage.js";
     const a = o.area;
     const key = [a.downloaded, a.bbox.join(","), a.network.nodes.length, a.network.edges.length].join("|");
     $("area-title").textContent = a.name ? "Oblast: " + a.name : "";
+    // only the evaluated part of the network is drawn; it can differ between states of the same area
+    const linesKey = key + "|" + JSON.stringify(a.exclusions || null);
+    if (linesKey !== S.linesKey) {
+      S.linesKey = linesKey;
+      if (S.networkGroup) map.removeLayer(S.networkGroup);
+      S.lines = [];
+      result.net.segments.ll.forEach((c, i) => {
+        if (!result.excluded[i]) S.lines.push(L.polyline(c.map((p) => [p[1], p[0]]), { renderer, idx: i, weight: 4, opacity: 0.95 }));
+      });
+      S.networkGroup = L.featureGroup(S.lines).addTo(map);
+      S.networkGroup.bindTooltip((l) => {
+        const d = currentValues();
+        const rec = S.loaded.get(S.current);
+        return d ? R.escapeHtml(layerName(rec.o, S.layer)) + ": " + R.formatM(d[l.options.idx]) : "pěší síť";
+      }, { sticky: true, direction: "top", offset: [0, -8] });
+    }
     if (key === S.areaKey) return;
     const first = S.areaKey === null;
     S.areaKey = key;
-    if (S.networkGroup) map.removeLayer(S.networkGroup);
-    S.lines = result.net.segments.ll.map((c, i) => L.polyline(c.map((p) => [p[1], p[0]]), { renderer, idx: i, weight: 4, opacity: 0.95 }));
-    S.networkGroup = L.featureGroup(S.lines).addTo(map);
-    S.networkGroup.bindTooltip((l) => {
-      const d = currentValues();
-      return d ? R.escapeHtml(layerName(o, S.layer)) + ": " + R.formatM(d[l.options.idx]) : "pěší síť";
-    }, { sticky: true, direction: "top", offset: [0, -8] });
     if (S.outline) map.removeLayer(S.outline);
     S.outline = L.polygon([[a.bbox[1], a.bbox[0]], [a.bbox[1], a.bbox[2]], [a.bbox[3], a.bbox[2]], [a.bbox[3], a.bbox[0]]], {
       color: "#334155", weight: 1.2, dashArray: "5 5", fill: false, interactive: false,
@@ -318,18 +346,23 @@ import * as db from "./storage.js";
     const rec = S.loaded.get(S.current);
     const d = currentValues();
     if (!rec || !d) return;
-    for (let i = 0; i < S.lines.length; i++) S.lines[i].setStyle({ color: R.color(d[i], S.settings) });
+    for (const line of S.lines) line.setStyle({ color: R.color(d[line.options.idx], S.settings) });
     S.markers.eachLayer((m) => {
       const dim = S.layer !== SUMMARY_KEY && m._type !== S.layer;
       m.setIcon(R.containerIcon(L, m._typeInfo, dim ? "dimmed" : ""));
       m.setZIndexOffset(dim ? 0 : 1000);
     });
+    const collection = rec.result.collection;
+    const anyDoor = rec.o.types.some((t) => isDoorToDoor(collection, t.key));
     const caption = S.layer === SUMMARY_KEY
-      ? "nejdelší z cest k nejbližším kontejnerům typů: " + rec.result.summaryTypes.map((k) => layerName(rec.o, k)).join(", ")
-      : "vzdálenost po pěších cestách k nejbližšímu kontejneru";
+      ? "nejdelší z cest k nejbližším kontejnerům typů: " + rec.result.summaryTypes.map((k) => layerName(rec.o, k)).join(", ") +
+        (anyDoor ? " (svoz od domu se nezapočítává)" : "")
+      : isDoorToDoor(collection, S.layer)
+        ? "svoz od domu – vzdálenost k nejbližšímu záložnímu místu"
+        : "vzdálenost po pěších cestách k nejbližšímu kontejneru";
     legendDiv.innerHTML = R.legendHtml(S.settings, layerName(rec.o, S.layer), caption);
     legendDiv.hidden = false;
-    showStats(d, rec.result.net.segments.length);
+    showStats(d, rec.result.lengths);
     history.replaceState(null, "", buildLink(S.current === PREVIEW ? { preview: true, layer: S.layer } : { state: S.current, layer: S.layer }));
   }
 
@@ -341,6 +374,9 @@ import * as db from "./storage.js";
     const parts = o.types.filter((t) => counts[t.key]).map((t) => t.name + " " + counts[t.key]);
     $("state-meta").textContent = "Kontejnery: " + (parts.join(", ") || "žádné") + " · uloženo " + formatDate(o.saved) +
       (o.area.downloaded ? " · cesty z OSM k " + formatDate(o.area.downloaded) : "");
+    const lines = describeCollection(collectionOf(o), o.types);
+    $("state-collection").textContent = lines.join(" ");
+    $("state-collection").hidden = !lines.length;
   }
 
   function showLayers(o, result) {
@@ -381,6 +417,14 @@ import * as db from "./storage.js";
     const s = S.settings, ul = $("how-bands");
     const names = ["zelená", "oranžová", "červená"];
     ul.innerHTML = "";
+    if (s.mode === "continuous") {
+      ul.innerHTML = '<li><span class="line" style="background:linear-gradient(to right,' + R.continuousColor(0, s.continuous_max_m) + "," +
+        R.continuousColor(s.continuous_max_m / 2, s.continuous_max_m) + "," + R.continuousColor(s.continuous_max_m, s.continuous_max_m) +
+        ')"></span>spojitá škála: od zelené (u kontejneru) přes žlutou po červenou (' + R.formatNumber(s.continuous_max_m) +
+        " m a víc)</li>" + '<li><span class="line" style="background:' + s.unreachable_color +
+        '"></span>šedá – odsud se ke kontejneru po zmapovaných cestách nedá dojít</li>';
+      return;
+    }
     for (let i = 0; i <= s.bands.length; i++) {
       const li = document.createElement("li");
       li.innerHTML = '<span class="line" style="background:' + s.band_colors[i] + '"></span>' + (names[i] || "") + " – " + R.bandLabel(i, s.bands);
@@ -426,13 +470,13 @@ import * as db from "./storage.js";
     const cols = S.entries.filter((e) => S.loaded.get(e.id) && S.loaded.get(e.id).result);
     const data = cols.map((e) => {
       const rec = S.loaded.get(e.id);
-      return { e, o: rec.o, shares: compareState(rec.o, rec.result, limits) };
+      return { e, o: rec.o, shares: compareState(rec.o, rec.result, limits), collection: rec.result.collection };
     });
     // rows: layers in the order they first appear, summary last
     const rows = [], names = {};
     for (const c of data) {
       for (const k of Object.keys(c.shares)) {
-        if (k !== SUMMARY_KEY && rows.indexOf(k) < 0) { rows.push(k); names[k] = layerName(c.o, k); }
+        if (k !== SUMMARY_KEY && rows.indexOf(k) < 0) { rows.push(k); names[k] = (typesOf(c.o)[k] || { name: k }).name; }
       }
     }
     if (data.some((c) => c.shares[SUMMARY_KEY])) { rows.push(SUMMARY_KEY); names[SUMMARY_KEY] = "Všechny typy"; }
@@ -447,7 +491,8 @@ import * as db from "./storage.js";
       h += '<tr class="' + (k === S.layer ? "current" : "") + '"><th>' + R.escapeHtml(names[k]) + "</th>";
       data.forEach((c) => {
         const v = c.shares[k];
-        h += '<td class="num' + (c.e.id === S.current ? " current" : "") + '">' + (v ? v.map(percent).join(" · ") : "–") + "</td>";
+        const text = k !== SUMMARY_KEY && isDoorToDoor(c.collection, k) ? "od domu" : v ? v.map(percent).join(" · ") : "–";
+        h += '<td class="num' + (c.e.id === S.current ? " current" : "") + '">' + text + "</td>";
       });
       h += "</tr>";
     });

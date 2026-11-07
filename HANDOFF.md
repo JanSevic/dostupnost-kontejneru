@@ -36,11 +36,19 @@ Co zůstává česky i v kódu (je to rozhraní pro uživatele, ne kód):
      ze zveřejněného seznamu; dosavadní kontejnery se uloží jako varianta). Po načtení stránky
      se otevře naposledy otevřená oblast.
    - `js/backend.js` napodobuje volání `/api/...` Python serveru (stejné anglické adresy a klíče).
+   - **Jen ve webové verzi** (Python verze je zatím nemá):
+     - způsob sběru (`js/collection.js`): svoz od domu (kontejnery = záložní místa, typ mimo souhrn)
+       a sdružený sběr (typ se sbírá i do kontejnerů jiných typů). Ukládá se jako položka `sber`
+       v GeoJSON kontejnerů, tedy i do variant a stavů;
+     - vyloučené části sítě (`js/exclusions.js`): polygony a jednotlivé úseky; nezobrazují se,
+       nepočítají do statistik a exportů, ale trasy přes ně dál vedou. Ukládá se k oblasti
+       (`work.exclusions` v IndexedDB) a do stavu (`area.exclusions`). API `/api/exclusions…`;
+     - v prohlížení přepínač pásma / spojitá škála (výchozí z `display.mode` stavu).
    - `js/state.js`: formát stavu (`format: "dostupnost-kontejneru/state"`, `version: 1`), validace,
      souhrn do seznamu, výpočet, srovnání, odkazy.
    - `tools/presets-index.mjs`: generátor `presets/index.json` (spouští CI, lokálně ručně).
    - Service worker a manifest jsou odstraněné; `js/unregister-sw.js` odregistruje starý.
-   - Testy: `cd web && node --test tests/*.test.js` (23 testů prošlo), včetně shody s Pythonem.
+   - Testy: `cd web && node --test tests/*.test.js` (29 testů prošlo), včetně shody s Pythonem.
    - Nasazení: `.gitlab-ci.yml` (node:20-alpine) a `.github/workflows/pages.yml` spustí testy,
      generátor seznamu a zveřejní `web/` (bez `tests/`, `tools/`, `package.json`).
    - Postup pro autora je v `web/README.md`.

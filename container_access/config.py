@@ -19,6 +19,8 @@ DEFAULTS = {
         {"key": "sklo", "name": "Sklo", "color": "#1b8a3a", "abbr": "Sk"},
         {"key": "kovy", "name": "Kovy", "color": "#7d8590", "abbr": "Ko"},
         {"key": "textil", "name": "Textil", "color": "#8e44ad", "abbr": "Tx"},
+        {"key": "kartony", "name": "Nápojové kartony", "color": "#f76707", "abbr": "NK"},
+        {"key": "oleje", "name": "Jedlé oleje", "color": "#5c3d1e", "abbr": "Ol"},
     ],
     "bands_m": [100, 200],
     "band_colors": ["#1a9850", "#f08c00", "#d7301f"],

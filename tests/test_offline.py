@@ -122,11 +122,12 @@ def test_app_with_offline(offline_server):
     # 4) computation
     containers = {"type": "FeatureCollection", "features": [
         container(5, 5, "plast", 1), container(-300, 290, "plast", 2), container(300, -290, "sklo", 3),
-        container(310, 310, "papir", 4), container(-150, -140, "kovy", 5), container(300, 0, "textil", 6)]}
+        container(310, 310, "papir", 4), container(-150, -140, "kovy", 5), container(300, 0, "textil", 6),
+        container(-290, 10, "kartony", 7), container(150, -300, "oleje", 8)]}
     code, _, _ = _request(port, "PUT", "/api/containers", containers)
     assert code == 200
     code, r, _ = _request(port, "POST", "/api/compute", {"types": "all"})
-    assert code == 200 and set(r["results"]) == {"plast", "papir", "sklo", "kovy", "textil"}
+    assert code == 200 and set(r["results"]) == {"plast", "papir", "sklo", "kovy", "textil", "kartony", "oleje"}
     assert all(k["ok"] for k in r["checks"].values())
     assert r["summary"] is not None
     # 5) all exports
@@ -140,7 +141,7 @@ def test_app_with_offline(offline_server):
     assert code == 200 and Image.open(io.BytesIO(content)).size == (3507, 2481)
     assert "X-Warnings" not in h or "Podklad" not in h["X-Warnings"]
     code, content, _ = _request(port, "POST", "/api/export/png", {"all": True, "basemap": "vector"}, expect_json=False)
-    assert code == 200 and len(zipfile.ZipFile(io.BytesIO(content)).namelist()) == 6
+    assert code == 200 and len(zipfile.ZipFile(io.BytesIO(content)).namelist()) == 8
     outputs = list((Path(data) / "areas").glob("*/outputs/*"))
     assert {p.suffix for p in outputs} >= {".gpkg", ".html", ".png", ".zip"}
 

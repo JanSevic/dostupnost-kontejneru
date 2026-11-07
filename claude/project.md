@@ -6,7 +6,7 @@ Pages) used to share "states" with council members.
 
 ## Language rule
 - **Code in English**: identifiers, comments, file/module names, internal API routes and JSON keys,
-  config keys, CSS classes and ids, test names.
+  config keys, CSS classes and ids, test names, **git commit messages**.
 - **Everything users see stays Czech**: UI text, error messages, READMEs, HANDOFF.md, downloaded file
   names, the page URL `upravy.html`, the link hash `#stav=…&vrstva=…` / `#nahled`, launcher scripts
   `spustit.*`, CLI flags (`--bez-prohlizece`), container GeoJSON properties (`id`, `typ`, `poznamka`),

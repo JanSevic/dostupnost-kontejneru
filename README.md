@@ -95,7 +95,7 @@ varianty a exporty jsou v její složce (`data/areas/<název>/`). Oblastí můž
   Funkce, které potřebují internet, jsou offline zašedlé a po najetí myší řeknou proč.
 
 ### 2. Kontejnery
-- Vyber **aktivní typ** (plast, papír, sklo, kovy, textil).
+- Vyber **aktivní typ** (plast, papír, sklo, kovy, textil, nápojové kartony, jedlé oleje).
 - **Klik do mapy** = nový kontejner aktivního typu, **tažení značky** = přesun,
   **klik na značku** = okénko, kde změníš typ, napíšeš poznámku nebo kontejner smažeš
   (smazání jde hned vrátit tlačítkem „Vrátit“).
@@ -266,7 +266,7 @@ vlastnosti:
 | vlastnost | význam |
 |---|---|
 | `id` | číslo kontejneru (jedinečné) |
-| `typ` | klíč typu z config.json (`plast`, `papir`, `sklo`, `kovy`, `textil`) |
+| `typ` | klíč typu z config.json (`plast`, `papir`, `sklo`, `kovy`, `textil`, `kartony`, `oleje`) |
 | `poznamka` | volný text |
 
 ```json

@@ -94,7 +94,7 @@ def test_without_area(client):
 
 def test_config(client):
     c = client.get("/api/config").json()
-    assert [t["key"] for t in c["types"]] == ["plast", "papir", "sklo", "kovy", "textil"]
+    assert [t["key"] for t in c["types"]] == ["plast", "papir", "sklo", "kovy", "textil", "kartony", "oleje"]
     assert c["default_area"]["name"] == "Dřínov (okres Mělník)"
     assert c["tiles"]["url"].startswith("https://tile.openstreetmap.org/")
     assert c["offline_tiles"]["allowed"] is False  # OSM forbids offline use

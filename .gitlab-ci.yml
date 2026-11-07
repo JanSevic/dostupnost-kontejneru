@@ -1,0 +1,17 @@
+# GitLab Pages: tests the web version, builds the list of published states and publishes web/.
+pages:
+  image: node:20-alpine
+  stage: deploy
+  script:
+    - cd web
+    - node --test tests/*.test.js
+    - node tools/presets-index.mjs
+    - cd ..
+    - rm -rf public
+    - cp -r web public
+    - rm -rf public/tests public/tools public/package.json
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

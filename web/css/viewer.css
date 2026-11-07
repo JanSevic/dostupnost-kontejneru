@@ -1,0 +1,34 @@
+/* Viewer page (index.html): panel on the left on desktop, below the map on phones. */
+body.viewer #panel { order: -1; }
+body.viewer .busy, body.viewer .toast { left: calc(50% + var(--panel-width) / 2); }
+.state-description { margin: 8px 0 4px; white-space: pre-line; }
+.state-description[hidden] { display: none; }
+#state-select { font-weight: 600; }
+.how-to-read { font-size: 13px; }
+.how-to-read p { margin: 6px 0; }
+.how-to-read ul { list-style: none; padding: 0; margin: 6px 0; }
+.how-to-read li { margin: 2px 0; }
+details summary { cursor: pointer; }
+.footer { margin: 10px 0 0; }
+.footer a { color: var(--muted); }
+
+.compare { margin-top: 8px; font-size: 12.5px; }
+.compare-scroll { overflow-x: auto; }
+.compare table { border-collapse: collapse; min-width: 100%; }
+.compare th, .compare td { padding: 3px 6px; border-bottom: 1px solid #e4e7eb; text-align: left; white-space: nowrap; }
+.compare thead th { vertical-align: bottom; white-space: normal; min-width: 70px; }
+.compare td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.compare .current { background: #e7f0fb; }
+.compare tr.current th { font-weight: 700; }
+.compare thead button.link { padding: 0; text-align: left; font-weight: 600; }
+
+@media (max-width: 760px) {
+  body.viewer { flex-direction: column; height: auto; min-height: 100%; }
+  body.viewer #map { flex: none; height: 58vh; height: 58svh; width: 100%; }
+  body.viewer #panel { order: 1; position: static; width: 100%; min-width: 0; height: auto; overflow: visible;
+    border-right: 0; border-top: 1px solid var(--border); box-shadow: none; }
+  body.viewer .header { position: static; }
+  body.viewer .busy, body.viewer .toast { position: fixed; left: 50%; }
+  body.viewer .legend { font-size: 11.5px; min-width: 0; padding: 6px 8px; }
+  body.viewer .legend-caption { display: none; }
+}

@@ -1,0 +1,7 @@
+data/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# generated in CI from web/presets/*.json (locally: cd web && node tools/presets-index.mjs)
+web/presets/index.json

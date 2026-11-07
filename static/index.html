@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dostupnost kontejnerů</title>
+  <link rel="stylesheet" href="leaflet/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside id="panel">
+    <header class="header">
+      <h1>Dostupnost kontejnerů</h1>
+      <span id="connectivity-badge" class="badge" title="Stav připojení k internetu">…</span>
+      <button id="btn-collapse" class="icon-btn" title="Sbalit panel" aria-label="Sbalit panel">«</button>
+    </header>
+
+    <section>
+      <h2><span class="num">1</span> Oblast</h2>
+      <div class="row area-row">
+        <strong id="area-name">Není vybraná žádná oblast</strong>
+        <span class="spacer"></span>
+        <button id="btn-change-area">Změnit…</button>
+      </div>
+      <div id="area-info" class="status status-none">Vyber oblast nebo připrav novou.</div>
+      <div id="task" class="status status-busy" hidden>
+        <div id="task-text">…</div>
+        <progress id="task-progress" max="1" hidden></progress>
+      </div>
+      <div class="row gap">
+        <button id="btn-update" data-online title="Znovu stáhne síť a podklad pro tuto oblast">Aktualizovat data</button>
+        <button id="btn-new-extent" data-online title="Pro výřez mapy + 300 m stáhne síť a podklad pro práci bez internetu">Připravit oblast pro offline…</button>
+      </div>
+      <p id="offline-hint" class="hint warn-text" hidden>Offline: příprava a aktualizace oblasti potřebují internet. Vše ostatní funguje.</p>
+      <div class="row gap">
+        <span>Podklad:</span>
+        <label title="Dlaždice OSM online, offline vektorový podklad"><input type="radio" name="basemap" value="auto" checked> automaticky</label>
+        <label><input type="radio" name="basemap" value="vector"> vektorový</label>
+        <label><input type="radio" name="basemap" value="none"> žádný</label>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="chk-show-network" checked> ukázat pěší síť</label>
+        <span class="spacer"></span>
+        <label title="Aplikace nebude nic stahovat z internetu"><input type="checkbox" id="chk-offline"> pracovat offline</label>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="num">2</span> Kontejnery</h2>
+      <div id="types" class="types" role="radiogroup" aria-label="Aktivní typ odpadu"></div>
+      <label class="gap"><input type="checkbox" id="chk-add" checked> přidávat kliknutím do mapy</label>
+      <p class="hint">Klik do mapy = nový kontejner aktivního typu · tažení = přesun · klik na značku = poznámka, typ, smazání.</p>
+      <div class="row">
+        <label><input type="checkbox" id="chk-only-active"> jen aktivní typ</label>
+        <span class="spacer"></span>
+        <span id="total" class="muted"></span>
+      </div>
+      <ul id="list" class="list"></ul>
+      <div id="saved" class="muted small"></div>
+    </section>
+
+    <section>
+      <h2><span class="num">3</span> Výpočet</h2>
+      <div class="row">
+        <button id="btn-compute" class="primary">Spočítat</button>
+        <button id="btn-compute-all">Spočítat vše</button>
+      </div>
+      <label class="gap"><input type="checkbox" id="chk-auto"> přepočítat automaticky po změně</label>
+      <div class="row gap" id="band-inputs"></div>
+      <div class="row">
+        <span>Barvy:</span>
+        <label><input type="radio" name="mode" value="bands" checked> pásma</label>
+        <label><input type="radio" name="mode" value="continuous"> spojitá škála</label>
+      </div>
+      <ul id="warnings" class="warnings"></ul>
+    </section>
+
+    <section>
+      <h2><span class="num">4</span> Výsledek na mapě</h2>
+      <div id="layers" class="layers"></div>
+      <div id="stats" class="stats"></div>
+    </section>
+
+    <section>
+      <h2><span class="num">5</span> Soubory</h2>
+      <div class="row">
+        <button id="btn-save-variant">Uložit variantu…</button>
+        <button id="btn-load-variant">Načíst variantu…</button>
+      </div>
+      <div class="row">
+        <button id="btn-download-geojson" class="link">stáhnout GeoJSON</button>
+        <button id="btn-upload-geojson" class="link">nahrát GeoJSON…</button>
+      </div>
+      <label class="block gap">Titulek mapy
+        <input id="title" type="text" class="wide">
+      </label>
+      <div class="row gap">
+        <span>Export:</span>
+        <button id="btn-export-html" title="Interaktivní mapa v jednom souboru, funguje i bez internetu">HTML</button>
+        <button id="btn-export-png" title="Mapa pro tisk, A4 na šířku, aktuální výřez a vrstva, podklad podle volby nahoře">PNG A4</button>
+        <button id="btn-export-gpkg" title="Vrstvy pro QGIS">GeoPackage</button>
+      </div>
+      <label><input type="checkbox" id="chk-png-all"> PNG pro všechny vrstvy (ZIP)</label>
+      <label id="lbl-html-tiles" hidden><input type="checkbox" id="chk-html-tiles"> do HTML vložit uložené dlaždice <span id="tiles-size" class="muted"></span></label>
+    </section>
+  </aside>
+
+  <button id="btn-expand" class="icon-btn expand" title="Zobrazit panel" aria-label="Zobrazit panel">»</button>
+  <div id="map"></div>
+  <div id="busy" class="busy" hidden><span class="spinner"></span><span id="busy-text">Pracuji…</span></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="dlg-variants">
+    <form method="dialog">
+      <h3>Načíst variantu</h3>
+      <p class="muted small">Načtení nahradí aktuálně zadané kontejnery (ty se předtím automaticky uložily).</p>
+      <ul id="variant-list" class="dialog-list" data-empty="Zatím žádné uložené varianty."></ul>
+      <div class="row end"><button value="cancel">Zavřít</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-areas">
+    <form method="dialog">
+      <h3>Vyber oblast</h3>
+      <p class="muted small">Každá oblast má vlastní síť, podklad, kontejnery, varianty a exporty a funguje i bez internetu.</p>
+      <ul id="area-list" class="dialog-list" data-empty="Zatím žádné oblasti."></ul>
+      <h4>Nová oblast</h4>
+      <div class="column">
+        <button type="button" id="btn-prepare-default" data-online class="primary">Připravit Dřínov (okres Mělník)</button>
+        <button type="button" id="btn-from-extent" data-online>Z výřezu mapy…</button>
+        <button type="button" id="btn-osm-file" title="Funguje i offline: export z openstreetmap.org nebo z JOSM">Ze souboru .osm…</button>
+      </div>
+      <p id="dlg-areas-offline" class="hint warn-text" hidden>Offline: novou oblast jde vytvořit jen ze souboru .osm.</p>
+      <div class="row end"><button value="cancel" id="btn-close-areas">Zavřít</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-prepare">
+    <form method="dialog">
+      <h3>Připravit oblast pro offline</h3>
+      <p class="muted small">Pro aktuální výřez mapy a okraj 300 m se stáhne pěší síť a vektorový podklad
+        (budovy, cesty, voda, zeleň, železnice, názvy) z OpenStreetMap.</p>
+      <label class="block">Název oblasti <input id="prepare-name" type="text" class="wide" required></label>
+      <div id="prepare-estimate" class="status gap"></div>
+      <div class="row end gap">
+        <button value="cancel">Zrušit</button>
+        <button value="ok" id="btn-prepare-ok" class="primary">Připravit</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input type="file" id="file-geojson" accept=".geojson,.json,application/geo+json,application/json" hidden>
+  <input type="file" id="file-osm" accept=".osm,.xml" hidden>
+
+  <script src="leaflet/leaflet.js"></script>
+  <script src="render.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

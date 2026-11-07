@@ -117,7 +117,6 @@ import { evaluatedLengths } from "./exclusions.js";
       bands: Array.isArray(savedSettings.bands) && savedSettings.bands.length === S.cfg.bands_m.length ? savedSettings.bands : S.cfg.bands_m.slice(),
       band_colors: S.cfg.band_colors,
       unreachable_color: S.cfg.unreachable_color,
-      continuous_max_m: S.cfg.continuous_max_m,
     };
     setTypes(S.cfg.types);
     const savedType = stored("active");

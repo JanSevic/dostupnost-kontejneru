@@ -2,31 +2,42 @@
 (function (global) {
   "use strict";
 
-  const CONTINUOUS_SCALE = [
-    [0.0, [26, 152, 80]],
-    [0.25, [145, 207, 96]],
-    [0.5, [254, 224, 139]],
-    [0.75, [252, 141, 89]],
-    [1.0, [215, 48, 39]],
-  ];
-  const BEYOND_MAX = "#a50026";
+  // Continuous scale anchored to the band limits so that it reads like the bands: green at the container,
+  // yellow at the first limit, the band orange halfway, the band red at the last limit, then darker red
+  // up to twice the last limit. Keep in sync with continuousStops() in exports.js.
+  const SCALE_YELLOW = "#f0c828";
+  const SCALE_DARK_RED = "#7f0000";
 
-  function hex(rgb) {
-    return "#" + rgb.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+  function rgb(h) {
+    const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(h || "");
+    return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [0, 0, 0];
   }
 
-  function continuousColor(d, max) {
-    if (d > max) return BEYOND_MAX;
-    const t = Math.max(0, d / max);
-    for (let i = 1; i < CONTINUOUS_SCALE.length; i++) {
-      const [t1, c1] = CONTINUOUS_SCALE[i];
-      const [t0, c0] = CONTINUOUS_SCALE[i - 1];
-      if (t <= t1) {
-        const f = (t - t0) / (t1 - t0);
-        return hex(c0.map((v, k) => v + f * (c1[k] - v)));
+  function hex(c) {
+    return "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+  }
+
+  /** [[distance in m, "#rrggbb"], …] for settings s = {bands, band_colors}. */
+  function continuousStops(s) {
+    const first = s.bands[0], last = s.bands[s.bands.length - 1], colors = s.band_colors;
+    const stops = [[0, colors[0]], [first, SCALE_YELLOW]];
+    if (last > first) stops.push([(first + last) / 2, colors[Math.min(1, colors.length - 1)]]);
+    stops.push([last, colors[colors.length - 1]], [2 * last, SCALE_DARK_RED]);
+    return stops;
+  }
+
+  function continuousColor(d, s) {
+    const stops = continuousStops(s);
+    if (d <= 0) return stops[0][1];
+    for (let i = 1; i < stops.length; i++) {
+      const [d1, c1] = stops[i], [d0, c0] = stops[i - 1];
+      if (d <= d1) {
+        const f = d1 > d0 ? (d - d0) / (d1 - d0) : 1;
+        const a = rgb(c0), b = rgb(c1);
+        return hex(a.map((v, k) => v + f * (b[k] - v)));
       }
     }
-    return hex(CONTINUOUS_SCALE[CONTINUOUS_SCALE.length - 1][1]);
+    return stops[stops.length - 1][1];
   }
 
   /** Band index: 0 = nearest; -1 = unreachable. */
@@ -36,10 +47,10 @@
     return limits.length;
   }
 
-  /** s: {mode: "bands"|"continuous", bands: [100, 200], band_colors, unreachable_color, continuous_max_m} */
+  /** s: {mode: "bands"|"continuous", bands: [100, 200], band_colors, unreachable_color} */
   function color(d, s) {
     if (d === null || d === undefined || !isFinite(d)) return s.unreachable_color;
-    if (s.mode === "continuous") return continuousColor(d, s.continuous_max_m);
+    if (s.mode === "continuous") return continuousColor(d, s);
     return s.band_colors[band(d, s.bands)];
   }
 
@@ -91,11 +102,16 @@
     let h = '<div class="legend-title">' + escapeHtml(title) + "</div>";
     if (caption) h += '<div class="legend-caption">' + escapeHtml(caption) + "</div>";
     if (s.mode === "continuous") {
-      const steps = [];
-      for (let i = 0; i <= 10; i++) steps.push(continuousColor((i / 10) * s.continuous_max_m, s.continuous_max_m));
-      h += '<div class="legend-gradient" style="background:linear-gradient(to right,' + steps.join(",") + ')"></div>';
-      h += '<div class="legend-axis"><span>0 m</span><span>' + formatNumber(s.continuous_max_m / 2) + " m</span><span>" +
-        formatNumber(s.continuous_max_m) + " m+</span></div>";
+      const stops = continuousStops(s), end = stops[stops.length - 1][0];
+      const pct = (x) => Math.round((x / end) * 1000) / 10;
+      h += '<div class="legend-gradient" style="background:linear-gradient(to right,' +
+        stops.map(([x, c]) => c + " " + pct(x) + "%").join(",") + ')"></div>';
+      // tick labels at the band limits, placed proportionally
+      const ticks = [[0, "0"]].concat(s.bands.map((b) => [b, formatNumber(b)]), [[end, formatNumber(end) + "+"]]);
+      h += '<div class="legend-axis" style="position:relative;display:block;height:14px">' + ticks.map(([x, t], i) => {
+        const pos = i === 0 ? "left:0" : i === ticks.length - 1 ? "right:0" : "left:" + pct(x) + "%;transform:translateX(-50%)";
+        return '<span style="position:absolute;' + pos + '">' + t + (i === ticks.length - 1 ? " m" : "") + "</span>";
+      }).join("") + "</div>";
     } else {
       for (let i = 0; i <= s.bands.length; i++) {
         h += '<div class="legend-row"><span class="legend-line" style="background:' + s.band_colors[i] + '"></span>' +
@@ -208,6 +224,6 @@
 
   global.Render = {
     vectorBasemap,
-    color, band, bandLabel, formatM, legendHtml, containerIcon, statistics, escapeHtml, continuousColor, formatNumber, isLightColor,
+    color, band, bandLabel, formatM, legendHtml, containerIcon, statistics, escapeHtml, continuousColor, continuousStops, formatNumber, isLightColor,
   };
 })(typeof window !== "undefined" ? window : this);

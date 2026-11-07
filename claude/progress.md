@@ -1,5 +1,20 @@
 # Progress log (newest first)
 
+## 2026-11-07 (continuous scale)
+- Continuous scale now follows the band limits (red from the last limit, darker up to 2×); removed
+  `continuous_max_m`; legend ticks at the limits; PNG export uses the same scale; tests/render.test.js.
+
+## 2026-11-07 (HANDOFF removed)
+- Deleted HANDOFF.md at the user's request; its approved rules and the not-started ideas moved to
+  claude/project.md. Older entries below still mention HANDOFF.md.
+
+## 2026-11-07 (Python removal)
+- Removed the desktop Python version at the user's request: app.py, config.json, container_access/,
+  static/, tests/ (pytest), requirements*, pytest.ini, spustit.*. Kept web/tests/data/parity.json as
+  frozen reference results. Rewrote the root README, HANDOFF.md, CLAUDE.md and claude/project.md for a
+  web-only project; removed Python mentions from web/README.md and code comments.
+- Note: entries below mention Python files that no longer exist.
+
 ## 2026-11-07 (later)
 - Added carton and cooking-oil types (config.json, config.py, web config.js).
 - Web only: continuous colour scale toggle in the viewer; network exclusions (polygons + single edges,

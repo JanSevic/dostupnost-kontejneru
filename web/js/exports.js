@@ -83,24 +83,38 @@ export async function html({ net, fc, types, results, summary, settings, title, 
 
 // ------------------------------------------------------------------ A4 landscape PNG (300 dpi)
 const WIDTH = 3508, HEIGHT = 2480, PT = 300 / 72; // px per typographic point
-const CONTINUOUS = [[0, [26, 152, 80]], [0.25, [145, 207, 96]], [0.5, [254, 224, 139]], [0.75, [252, 141, 89]], [1, [215, 48, 39]]];
+// Continuous scale anchored to the band limits – the same as in render.js (keep in sync; a test compares them).
+const SCALE_YELLOW = "#f0c828";
+const SCALE_DARK_RED = "#7f0000";
+const toRgb = (h) => [1, 3, 5].map((i) => parseInt(String(h).replace("#", "").padStart(6, "0").slice(i - 1, i + 1), 16));
+const toHex = (c) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
 
-function continuousColor(d, mx) {
-  if (d > mx) return "#a50026";
-  const t = Math.max(0, d / mx);
-  for (let i = 1; i < CONTINUOUS.length; i++) {
-    const [t1, c1] = CONTINUOUS[i], [t0, c0] = CONTINUOUS[i - 1];
-    if (t <= t1) {
-      const f = (t - t0) / (t1 - t0);
-      return `rgb(${c0.map((v, k) => Math.round(v + f * (c1[k] - v))).join(",")})`;
+/** [[distance in m, "#rrggbb"], …]: green at 0, yellow at the first limit, band orange halfway, band red at the last limit, dark red at 2× the last limit. */
+export function continuousStops(s) {
+  const first = s.bands[0], last = s.bands[s.bands.length - 1], colors = s.band_colors;
+  const stops = [[0, colors[0]], [first, SCALE_YELLOW]];
+  if (last > first) stops.push([(first + last) / 2, colors[Math.min(1, colors.length - 1)]]);
+  stops.push([last, colors[colors.length - 1]], [2 * last, SCALE_DARK_RED]);
+  return stops;
+}
+
+export function continuousColor(d, s) {
+  const stops = continuousStops(s);
+  if (d <= 0) return stops[0][1];
+  for (let i = 1; i < stops.length; i++) {
+    const [d1, c1] = stops[i], [d0, c0] = stops[i - 1];
+    if (d <= d1) {
+      const f = d1 > d0 ? (d - d0) / (d1 - d0) : 1;
+      const a = toRgb(c0), b = toRgb(c1);
+      return toHex(a.map((v, k) => v + f * (b[k] - v)));
     }
   }
-  return "rgb(215,48,39)";
+  return stops[stops.length - 1][1];
 }
 
 function colorFor(d, s) {
   if (!Number.isFinite(d)) return s.unreachable_color;
-  return s.mode === "continuous" ? continuousColor(d, s.continuous_max_m) : s.band_colors[band(d, s.bands)];
+  return s.mode === "continuous" ? continuousColor(d, s) : s.band_colors[band(d, s.bands)];
 }
 
 const AREA_STYLE = { green: ["#e1eed4", null], forest: ["#c9e0b8", null], water: ["#b8d6f0", "#9cc3e6"], building: ["#ddd4ca", "#b9ada0"] };
@@ -248,10 +262,16 @@ export async function png({ net, fc, types, d, layer, settings, title, extent, b
   y += 20;
   const items = settings.mode === "continuous" ? [] : settings.band_colors.map((b2, i) => [b2, bandLabel(i, settings.bands)]);
   if (settings.mode === "continuous") {
-    const mx = settings.continuous_max_m;
-    for (let i = 0; i < 100; i++) { g.fillStyle = continuousColor((i / 100) * mx, mx); g.fillRect(LX + i * LW * 0.008, y, LW * 0.008 + 1, 30); }
+    const stops = continuousStops(settings), end = stops[stops.length - 1][0], GW = LW * 0.9;
+    for (let i = 0; i < 100; i++) { g.fillStyle = continuousColor((i / 100) * end, settings); g.fillRect(LX + i * GW / 100, y, GW / 100 + 1, 30); }
     y += 40;
-    g.font = font(8); g.fillStyle = "#222"; g.fillText("0 m", LX, y); g.textAlign = "right"; g.fillText(`${mx} m+`, LX + LW * 0.8, y); g.textAlign = "left";
+    g.font = font(8); g.fillStyle = "#222"; g.textBaseline = "top";
+    const ticks = [0, ...settings.bands, end];
+    ticks.forEach((x, i) => {
+      g.textAlign = i === 0 ? "left" : i === ticks.length - 1 ? "right" : "center";
+      g.fillText(i === ticks.length - 1 ? `${x}+ m` : i === 0 ? "0 m" : String(x), LX + (x / end) * GW, y);
+    });
+    g.textAlign = "left";
     y += 50;
   }
   items.push([settings.unreachable_color, "nedosažitelné"]);

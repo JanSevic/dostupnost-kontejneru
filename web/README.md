@@ -40,7 +40,7 @@ V sekci **2 Kontejnery** je odkaz **Způsob sběru…**. Pro každý typ odpadu 
   typu mít nemusí).
 
 Nastavení patří k rozmístění kontejnerů: ukládá se do variant, do stažené GeoJSON (položka `sber`)
-i do uloženého stavu, takže každý návrh může mít jiný způsob sběru. Desktopová (Python) verze ho zatím neumí.
+i do uloženého stavu, takže každý návrh může mít jiný způsob sběru.
 
 ### Vyloučení částí sítě
 
@@ -59,6 +59,10 @@ i do stavu pro web. Seznam vyloučených oblastí (s možností smazání) je po
 
 Zastupitelé si mohou přepnout barvy mezi **pásmy** a **spojitou škálou**. Výchozí volba se bere
 z režimu úprav v okamžiku uložení stavu (Výpočet → Barvy).
+
+Spojitá škála se řídí hranicemi pásem, aby se četla stejně: zelená u kontejneru, žlutá na 1. hranici
+(100 m), oranžová mezi hranicemi, **od 2. hranice (200 m) červená**, která dál tmavne až do dvojnásobku
+poslední hranice (400 m). Když v režimu úprav změníš hranice pásem, posune se s nimi i škála.
 
 Stav smažeš smazáním jeho souboru ze složky `presets/`. Opravu uděláš tak, že stav otevřeš
 v režimu úprav (**Otevřít stav k úpravám…** – ze zveřejněného seznamu nebo ze souboru),
@@ -109,26 +113,12 @@ Přes `file://` stránky nefungují (moduly JavaScriptu potřebují server).
   stavu nebo exportem kontejnerů do GeoJSON.
 - Prohlížeč se připojuje jen k Overpass API (stažení cest při přípravě oblasti) a k dlaždicím OSM.
 
-Webová verze už nefunguje offline (dřívější service worker se při otevření stránky sám odregistruje).
-Pro práci bez internetu je tu desktopová verze v Pythonu (viz README v kořeni).
-
-## Rozdíly proti Python verzi
-
-| | Python | Web |
-|---|---|---|
-| Export pro QGIS | GeoPackage (`.gpkg`) | GeoJSON (QGIS ho otevře přímo) |
-| Úložiště | složka `data/` | IndexedDB prohlížeče |
-| Práce bez internetu | ano | ne |
-| Sdílení stavů se zastupiteli | ne | ano |
-| Velikost oblasti | omezená výkonem počítače | doporučeno do ~30 km² (limit v `js/config.js`) |
-
-Výpočet je stejný (vícezdrojový Dijkstra po pěší síti, kousky po 10 m). Shodu ověřuje test,
-který porovná výsledky s Python verzí na testovacích datech.
+Aplikace nefunguje offline (dřívější service worker se při otevření stránky sám odregistruje).
+Oblast doporučujeme do ~30 km² (limit v `js/config.js`). Export pro QGIS je GeoJSON, QGIS ho otevře přímo.
 
 ## Konfigurace
 
-Pásma, barvy, typy odpadu, výchozí oblast a adresy služeb jsou v `js/config.js`
-(stejné klíče jako `config.json` Python verze).
+Pásma, barvy, typy odpadu, výchozí oblast a adresy služeb jsou v `js/config.js`.
 
 ## Testy
 
@@ -137,15 +127,15 @@ cd web
 node --test tests/*.test.js
 ```
 
-Potřebuje Node 18+. Referenční data pro porovnání s Pythonem vytvoří
-`python tests/generate_web_parity.py` (z kořene projektu).
+Potřebuje Node 18+. Testovací data jsou smyšlená „vesnice Test“ (`tests/data/`). Soubor `parity.json`
+obsahuje pevné referenční výsledky z dřívější Python verze aplikace – test hlídá, že se výpočet nezměnil.
 
 ## Struktura
 
 ```
 index.html, js/viewer.js     prohlížení pro zastupitele
 upravy.html, js/editor.js    režim úprav
-js/backend.js                „server“ režimu úprav v prohlížeči (stejná volání /api/… jako Python verze)
+js/backend.js                „server“ režimu úprav v prohlížeči (volání /api/…, data v IndexedDB)
 js/state.js                  formát uloženého stavu, odkazy, srovnání
 js/collection.js             způsob sběru (svoz od domu, sdružený sběr)
 js/exclusions.js             vyloučené části sítě

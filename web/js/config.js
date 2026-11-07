@@ -1,5 +1,4 @@
-// Web app configuration. Waste types and other values are edited here
-// (same keys as config.json of the Python version).
+// Web app configuration. Waste types and other values are edited here.
 export const CONFIG = {
   territory_name: "Dřínov",
   default_view: { label: "Dřínov, okres Mělník", lat: 50.2736, lon: 14.3975, zoom: 15 },
@@ -17,7 +16,6 @@ export const CONFIG = {
   bands_m: [100, 200],
   band_colors: ["#1a9850", "#f08c00", "#d7301f"],
   unreachable_color: "#9e9e9e",
-  continuous_max_m: 400,
   network_margin_m: 300,
   max_area_km2: 30,
   segment_length_m: 10,

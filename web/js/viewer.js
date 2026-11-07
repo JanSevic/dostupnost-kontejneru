@@ -80,8 +80,7 @@ import { normaliseCollection, isDoorToDoor, describeCollection, layerLabel } fro
   function settingsFor(o) {
     const bands = o.display.bands.length === CONFIG.band_colors.length - 1 ? o.display.bands : CONFIG.bands_m;
     const mode = S.mode || (o.display.mode === "continuous" ? "continuous" : "bands");
-    return { mode, bands, band_colors: CONFIG.band_colors, unreachable_color: CONFIG.unreachable_color,
-      continuous_max_m: CONFIG.continuous_max_m };
+    return { mode, bands, band_colors: CONFIG.band_colors, unreachable_color: CONFIG.unreachable_color };
   }
 
   // ------------------------------------------------------------------ start
@@ -418,10 +417,11 @@ import { normaliseCollection, isDoorToDoor, describeCollection, layerLabel } fro
     const names = ["zelená", "oranžová", "červená"];
     ul.innerHTML = "";
     if (s.mode === "continuous") {
-      ul.innerHTML = '<li><span class="line" style="background:linear-gradient(to right,' + R.continuousColor(0, s.continuous_max_m) + "," +
-        R.continuousColor(s.continuous_max_m / 2, s.continuous_max_m) + "," + R.continuousColor(s.continuous_max_m, s.continuous_max_m) +
-        ')"></span>spojitá škála: od zelené (u kontejneru) přes žlutou po červenou (' + R.formatNumber(s.continuous_max_m) +
-        " m a víc)</li>" + '<li><span class="line" style="background:' + s.unreachable_color +
+      const stops = R.continuousStops(s), b = s.bands, n = R.formatNumber;
+      ul.innerHTML = '<li><span class="line" style="background:linear-gradient(to right,' + stops.map((x) => x[1]).join(",") +
+        ')"></span>spojitá škála: zelená u kontejneru, žlutá kolem ' + n(b[0]) + " m, oranžová mezi " + n(b[0]) + " a " +
+        n(b[b.length - 1]) + " m, od " + n(b[b.length - 1]) + " m červená, která dál tmavne (nejtmavší od " +
+        n(2 * b[b.length - 1]) + " m)</li>" + '<li><span class="line" style="background:' + s.unreachable_color +
         '"></span>šedá – odsud se ke kontejneru po zmapovaných cestách nedá dojít</li>';
       return;
     }

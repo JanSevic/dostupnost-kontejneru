@@ -1,5 +1,5 @@
-// In-browser "server" for the editor. Answers the same calls as the Python desktop
-// server (same /api/… paths) and keeps work in progress in the browser's IndexedDB.
+// In-browser "server" for the editor: the UI talks to it through REST-like calls (call("GET", "/api/…")),
+// a structure kept from the former desktop server. Work in progress is stored in the browser's IndexedDB.
 import { CONFIG, OSM_ATTRIBUTION } from "./config.js";
 import { expandBbox, areaKm2 } from "./geo.js";
 import { fetchOverpass, fromXml, walkingNetwork, vectorBasemap, dataBbox, DataError } from "./osm.js";
@@ -259,7 +259,7 @@ function renderSettings(data) {
   bands = bands.map(Number).sort((a, b) => a - b);
   if (bands.length !== CONFIG.bands_m.length || bands.some((p) => !(p > 0))) throw new ApiError(400, "Neplatné hranice pásem.");
   return { mode: data.mode === "continuous" ? "continuous" : "bands", bands, band_colors: CONFIG.band_colors,
-    unreachable_color: CONFIG.unreachable_color, continuous_max_m: CONFIG.continuous_max_m };
+    unreachable_color: CONFIG.unreachable_color };
 }
 
 // ------------------------------------------------------------------ router

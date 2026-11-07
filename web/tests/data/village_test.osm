@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+  <node id="1" version="1" lat="50.2607918" lon="14.4008368"/>
+  <node id="2" version="1" lat="50.2638560" lon="14.4049640"/>
+  <node id="3" version="1" lat="50.2668000" lon="14.4093000"/>
+  <node id="4" version="1" lat="50.2697139" lon="14.4136883"/>
+  <node id="5" version="1" lat="50.2728082" lon="14.4177632"/>
+  <node id="6" version="1" lat="50.2625924" lon="14.4166106"/>
+  <node id="7" version="1" lat="50.2649967" lon="14.4124331"/>
+  <node id="8" version="1" lat="50.2687368" lon="14.4063550"/>
+  <node id="9" version="1" lat="50.2707071" lon="14.4025116"/>
+  <node id="10" version="1" lat="50.2609913" lon="14.4067910"/>
+  <node id="11" version="1" lat="50.2629940" lon="14.4096120"/>
+  <node id="12" version="1" lat="50.2669995" lon="14.4152542"/>
+  <node id="13" version="1" lat="50.2690022" lon="14.4180752"/>
+  <node id="14" version="1" lat="50.2645978" lon="14.4005248"/>
+  <node id="15" version="1" lat="50.2666005" lon="14.4033458"/>
+  <node id="16" version="1" lat="50.2706060" lon="14.4089880"/>
+  <node id="17" version="1" lat="50.2726087" lon="14.4118090"/>
+  <node id="18" version="1" lat="50.2647973" lon="14.4064789"/>
+  <node id="19" version="1" lat="50.2688027" lon="14.4121211"/>
+  <node id="20" version="1" lat="50.2708055" lon="14.4149421"/>
+  <node id="21" version="1" lat="50.2667003" lon="14.4063229"/>
+  <node id="22" version="1" lat="50.2686033" lon="14.4061669"/>
+  <node id="23" version="1" lat="50.2728095" lon="14.4083097"/>
+  <node id="24" version="1" lat="50.2747125" lon="14.4081537"/>
+  <node id="25" version="1" lat="50.2671019" lon="14.3993244"/>
+  <node id="26" version="1" lat="50.2709052" lon="14.4179192"/>
+  <node id="27" version="1" lat="50.2648970" lon="14.4094560"/>
+  <node id="28" version="1" lat="50.2587877" lon="14.4074692"/>
+  <node id="29" version="1" lat="50.2571853" lon="14.4071030"/>
+  <node id="30" version="1" lat="50.2670992" lon="14.4182313"/>
+  <node id="31" version="1" lat="50.2671989" lon="14.4212083"/>
+  <node id="32" version="1" lat="50.2559831" lon="14.4091918"/>
+  <node id="33" version="1" lat="50.2679995" lon="14.4261182"/>
+  <node id="34" version="1" lat="50.2691019" lon="14.4210523"/>
+  <node id="35" version="1" lat="50.2652193" lon="14.4065438"/>
+  <node id="36" version="1" lat="50.2653795" lon="14.4067695"/>
+  <node id="37" version="1" lat="50.2655237" lon="14.4065189"/>
+  <node id="38" version="1" lat="50.2653635" lon="14.4062932"/>
+  <node id="39" version="1" lat="50.2655530" lon="14.4070140"/>
+  <node id="40" version="1" lat="50.2657133" lon="14.4072397"/>
+  <node id="41" version="1" lat="50.2658575" lon="14.4069891"/>
+  <node id="42" version="1" lat="50.2656973" lon="14.4067634"/>
+  <node id="43" version="1" lat="50.2658868" lon="14.4074842"/>
+  <node id="44" version="1" lat="50.2660471" lon="14.4077099"/>
+  <node id="45" version="1" lat="50.2661913" lon="14.4074592"/>
+  <node id="46" version="1" lat="50.2660311" lon="14.4072336"/>
+  <node id="47" version="1" lat="50.2672887" lon="14.4094589"/>
+  <node id="48" version="1" lat="50.2674490" lon="14.4096846"/>
+  <node id="49" version="1" lat="50.2675932" lon="14.4094340"/>
+  <node id="50" version="1" lat="50.2674330" lon="14.4092083"/>
+  <node id="51" version="1" lat="50.2676893" lon="14.4100232"/>
+  <node id="52" version="1" lat="50.2678495" lon="14.4102488"/>
+  <node id="53" version="1" lat="50.2679938" lon="14.4099982"/>
+  <node id="54" version="1" lat="50.2678335" lon="14.4097725"/>
+  <node id="55" version="1" lat="50.2666877" lon="14.4105033"/>
+  <node id="56" version="1" lat="50.2668479" lon="14.4107290"/>
+  <node id="57" version="1" lat="50.2669921" lon="14.4104784"/>
+  <node id="58" version="1" lat="50.2668319" lon="14.4102527"/>
+  <node id="59" version="1" lat="50.2667539" lon="14.4143787"/>
+  <node id="60" version="1" lat="50.2669141" lon="14.4146044"/>
+  <node id="61" version="1" lat="50.2670584" lon="14.4143538"/>
+  <node id="62" version="1" lat="50.2668981" lon="14.4141281"/>
+  <node id="63" version="1" lat="50.2705471" lon="14.4098884"/>
+  <node id="64" version="1" lat="50.2707073" lon="14.4101140"/>
+  <node id="65" version="1" lat="50.2708516" lon="14.4098634"/>
+  <node id="66" version="1" lat="50.2706914" lon="14.4096377"/>
+  <node id="67" version="1" lat="50.2628085" lon="14.4086322"/>
+  <node id="68" version="1" lat="50.2629687" lon="14.4088578"/>
+  <node id="69" version="1" lat="50.2631130" lon="14.4086072"/>
+  <node id="70" version="1" lat="50.2629528" lon="14.4083815"/>
+  <node id="71" version="1" lat="50.2651464" lon="14.4024700"/>
+  <node id="72" version="1" lat="50.2653066" lon="14.4026956"/>
+  <node id="73" version="1" lat="50.2654509" lon="14.4024450"/>
+  <node id="74" version="1" lat="50.2652907" lon="14.4022193"/>
+  <node id="75" version="1" lat="50.2681955" lon="14.4091856"/>
+  <node id="76" version="1" lat="50.2687296" lon="14.4099379"/>
+  <node id="77" version="1" lat="50.2692105" lon="14.4091024"/>
+  <node id="78" version="1" lat="50.2686764" lon="14.4083501"/>
+  <node id="79" version="1" lat="50.2634967" lon="14.3961371"/>
+  <node id="80" version="1" lat="50.2676825" lon="14.4014660"/>
+  <node id="81" version="1" lat="50.2709603" lon="14.4062722"/>
+  <node id="82" version="1" lat="50.2759338" lon="14.4123325"/>
+  <node id="83" version="1" lat="50.2566175" lon="14.4091398"/>
+  <node id="84" version="1" lat="50.2589540" lon="14.4124310"/>
+  <node id="85" version="1" lat="50.2607572" lon="14.4092979"/>
+  <node id="86" version="1" lat="50.2584207" lon="14.4060066"/>
+  <node id="87" version="1" lat="50.2682681" lon="14.4151502"/>
+  <node id="88" version="1" lat="50.2692695" lon="14.4165607"/>
+  <node id="89" version="1" lat="50.2698706" lon="14.4155163"/>
+  <node id="90" version="1" lat="50.2688692" lon="14.4141058"/>
+  <node id="91" version="1" lat="50.2568848" lon="14.4076252"/>
+  <node id="92" version="1" lat="50.2690814" lon="14.4242383"/>
+  <node id="93" version="1" lat="50.2669803" lon="14.4089867">
+    <tag k="place" v="village"/>
+    <tag k="name" v="Test"/>
+  </node>
+  <way id="1" version="1">
+    <nd ref="1"/>
+    <nd ref="2"/>
+    <nd ref="3"/>
+    <nd ref="4"/>
+    <nd ref="5"/>
+    <tag k="highway" v="secondary"/>
+    <tag k="name" v="Ulice A"/>
+  </way>
+  <way id="2" version="1">
+    <nd ref="6"/>
+    <nd ref="7"/>
+    <nd ref="3"/>
+    <tag k="highway" v="tertiary"/>
+    <tag k="name" v="Ulice B"/>
+  </way>
+  <way id="3" version="1">
+    <nd ref="3"/>
+    <nd ref="8"/>
+    <nd ref="9"/>
+    <tag k="highway" v="tertiary"/>
+  </way>
+  <way id="4" version="1">
+    <nd ref="10"/>
+    <nd ref="11"/>
+    <nd ref="7"/>
+    <nd ref="12"/>
+    <nd ref="13"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Ulice C"/>
+  </way>
+  <way id="5" version="1">
+    <nd ref="14"/>
+    <nd ref="15"/>
+    <nd ref="8"/>
+    <nd ref="16"/>
+    <nd ref="17"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Ulice D"/>
+  </way>
+  <way id="6" version="1">
+    <nd ref="11"/>
+    <nd ref="18"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="7" version="1">
+    <nd ref="18"/>
+    <nd ref="15"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="8" version="1">
+    <nd ref="12"/>
+    <nd ref="19"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="9" version="1">
+    <nd ref="19"/>
+    <nd ref="16"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="10" version="1">
+    <nd ref="10"/>
+    <nd ref="14"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="11" version="1">
+    <nd ref="13"/>
+    <nd ref="20"/>
+    <nd ref="17"/>
+    <tag k="highway" v="unclassified"/>
+  </way>
+  <way id="12" version="1">
+    <nd ref="18"/>
+    <nd ref="21"/>
+    <nd ref="22"/>
+    <tag k="highway" v="footway"/>
+  </way>
+  <way id="13" version="1">
+    <nd ref="16"/>
+    <nd ref="23"/>
+    <nd ref="24"/>
+    <nd ref="9"/>
+    <tag k="highway" v="track"/>
+  </way>
+  <way id="14" version="1">
+    <nd ref="14"/>
+    <nd ref="25"/>
+    <nd ref="9"/>
+    <tag k="highway" v="path"/>
+  </way>
+  <way id="15" version="1">
+    <nd ref="20"/>
+    <nd ref="26"/>
+    <nd ref="5"/>
+    <tag k="highway" v="cycleway"/>
+  </way>
+  <way id="16" version="1">
+    <nd ref="11"/>
+    <nd ref="27"/>
+    <nd ref="7"/>
+    <tag k="highway" v="pedestrian"/>
+    <tag k="access" v="no"/>
+    <tag k="foot" v="yes"/>
+  </way>
+  <way id="17" version="1">
+    <nd ref="10"/>
+    <nd ref="28"/>
+    <nd ref="29"/>
+    <tag k="highway" v="cycleway"/>
+    <tag k="foot" v="no"/>
+  </way>
+  <way id="18" version="1">
+    <nd ref="12"/>
+    <nd ref="30"/>
+    <nd ref="31"/>
+    <tag k="highway" v="service"/>
+    <tag k="access" v="private"/>
+  </way>
+  <way id="19" version="1">
+    <nd ref="32"/>
+    <nd ref="33"/>
+    <tag k="highway" v="motorway"/>
+  </way>
+  <way id="20" version="1">
+    <nd ref="13"/>
+    <nd ref="34"/>
+    <tag k="highway" v="service"/>
+    <tag k="service" v="private"/>
+  </way>
+  <way id="21" version="1">
+    <nd ref="35"/>
+    <nd ref="36"/>
+    <nd ref="37"/>
+    <nd ref="38"/>
+    <nd ref="35"/>
+    <tag k="building" v="yes"/>
+  </way>
+  <way id="22" version="1">
+    <nd ref="39"/>
+    <nd ref="40"/>
+    <nd ref="41"/>
+    <nd ref="42"/>
+    <nd ref="39"/>
+    <tag k="building" v="house"/>
+  </way>
+  <way id="23" version="1">
+    <nd ref="43"/>
+    <nd ref="44"/>
+    <nd ref="45"/>
+    <nd ref="46"/>
+    <nd ref="43"/>
+    <tag k="building" v="yes"/>
+  </way>
+  <way id="24" version="1">
+    <nd ref="47"/>
+    <nd ref="48"/>
+    <nd ref="49"/>
+    <nd ref="50"/>
+    <nd ref="47"/>
+    <tag k="building" v="house"/>
+  </way>
+  <way id="25" version="1">
+    <nd ref="51"/>
+    <nd ref="52"/>
+    <nd ref="53"/>
+    <nd ref="54"/>
+    <nd ref="51"/>
+    <tag k="building" v="yes"/>
+  </way>
+  <way id="26" version="1">
+    <nd ref="55"/>
+    <nd ref="56"/>
+    <nd ref="57"/>
+    <nd ref="58"/>
+    <nd ref="55"/>
+    <tag k="building" v="house"/>
+  </way>
+  <way id="27" version="1">
+    <nd ref="59"/>
+    <nd ref="60"/>
+    <nd ref="61"/>
+    <nd ref="62"/>
+    <nd ref="59"/>
+    <tag k="building" v="yes"/>
+  </way>
+  <way id="28" version="1">
+    <nd ref="63"/>
+    <nd ref="64"/>
+    <nd ref="65"/>
+    <nd ref="66"/>
+    <nd ref="63"/>
+    <tag k="building" v="house"/>
+  </way>
+  <way id="29" version="1">
+    <nd ref="67"/>
+    <nd ref="68"/>
+    <nd ref="69"/>
+    <nd ref="70"/>
+    <nd ref="67"/>
+    <tag k="building" v="yes"/>
+  </way>
+  <way id="30" version="1">
+    <nd ref="71"/>
+    <nd ref="72"/>
+    <nd ref="73"/>
+    <nd ref="74"/>
+    <nd ref="71"/>
+    <tag k="building" v="house"/>
+  </way>
+  <way id="31" version="1">
+    <nd ref="75"/>
+    <nd ref="76"/>
+    <nd ref="77"/>
+    <nd ref="78"/>
+    <nd ref="75"/>
+    <tag k="natural" v="water"/>
+    <tag k="name" v="Rybník Test"/>
+  </way>
+  <way id="32" version="1">
+    <nd ref="79"/>
+    <nd ref="80"/>
+    <nd ref="81"/>
+    <nd ref="82"/>
+    <tag k="waterway" v="stream"/>
+    <tag k="name" v="Potok Test"/>
+  </way>
+  <way id="33" version="1">
+    <nd ref="83"/>
+    <nd ref="84"/>
+    <nd ref="85"/>
+    <nd ref="86"/>
+    <nd ref="83"/>
+    <tag k="landuse" v="forest"/>
+  </way>
+  <way id="34" version="1">
+    <nd ref="87"/>
+    <nd ref="88"/>
+    <nd ref="89"/>
+    <nd ref="90"/>
+    <nd ref="87"/>
+    <tag k="leisure" v="park"/>
+  </way>
+  <way id="35" version="1">
+    <nd ref="91"/>
+    <nd ref="92"/>
+    <tag k="railway" v="rail"/>
+  </way>
+</osm>
